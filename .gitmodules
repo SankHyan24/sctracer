@@ -1,0 +1,15 @@
+[submodule "thirdparty/glfw"]
+	path = thirdparty/glfw
+	url = git@github.com:glfw/glfw.git
+[submodule "thirdparty/glm"]
+	path = thirdparty/glm
+	url = git@github.com:g-truc/glm.git
+[submodule "thirdparty/imgui"]
+	path = thirdparty/imgui
+	url = git@github.com:ocornut/imgui.git
+[submodule "gl3w"]
+	path = gl3w
+	url = git@github.com:skaslev/gl3w.git
+[submodule "thirdparty/gl3w"]
+	path = thirdparty/gl3w
+	url = git@github.com:skaslev/gl3w
