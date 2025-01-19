@@ -7,6 +7,8 @@ namespace scTracer::Core {
 
     class CameraBase { // interface
     public:
+        CameraBase() = default;
+        virtual ~CameraBase() = default;
         virtual glm::mat4 getViewMatrix() = 0;
         virtual glm::mat4 getProjectionMatrix() = 0;
         virtual glm::mat4 getVP() = 0;
@@ -16,6 +18,7 @@ namespace scTracer::Core {
     class Camera : CameraBase {
     public:
         Camera(glm::vec3 position, glm::vec3 lookAt, float fovDegree);
+        virtual ~Camera() = default;
 
         virtual glm::mat4 getViewMatrix() override {
             return mViewMat;

@@ -1,47 +1,14 @@
 #pragma once
-#include <memory>
-#include <iostream>
-#include <functional>
-#include <GL/gl3w.h>
-#include <imgui.h>
-#include <glfw/glfw3.h>
-#include <backends/imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
 
+#include <window/renderer.hpp>
 #include <config.hpp>
 
-
 namespace scTracer::Window {
-    class openGLManager
-    {
-    public:
-        openGLManager() {
-            if (!glfwInit())
-            {
-                std::cerr << "Failed to initialize GLFW" << std::endl;
-                exit(1);
-            }
-            glfwWindowHint(GLFW_DEPTH_BITS, 24);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-            glfwWindowHint(GLFW_DEPTH_BITS, 24);
-        }
-
-        ~openGLManager() {
-            glfwTerminate();
-        }
-
-    private:
-
-    };
-
-
 
     class Window
     {
     public:
-        Window() : mWindow(nullptr), mGLManager(std::make_unique<openGLManager>()) {
+        Window() : mWindow(nullptr), mGLManager(std::make_unique<GLFWManager>()), mRenderer(std::make_unique<RenderGPU>()) {
             __init();
         }
 
@@ -75,6 +42,7 @@ namespace scTracer::Window {
             glEnable(GL_DEPTH_TEST);
             glDepthFunc(GL_LESS);
         }
+
         void __run() {
             while (!glfwWindowShouldClose(mWindow))
             {
@@ -105,7 +73,9 @@ namespace scTracer::Window {
             ImGui_ImplOpenGL3_Init("#version 330");
         }
 
-        std::unique_ptr<openGLManager> mGLManager;
+        std::unique_ptr<GLFWManager> mGLManager;
         GLFWwindow* mWindow;
+
+        std::unique_ptr<RenderGPU> mRenderer;
     };
 };
