@@ -1,0 +1,4 @@
+
+namespace scTracer::Config {
+
+};
