@@ -34,6 +34,12 @@ namespace scTracer::GPU {
                     // Remove the include identifier, this will cause the path to remain
                     lineBuffer.erase(0, includeIndentifier.size());
 
+                    // erase "" or <> from the path
+                    if (lineBuffer.front() == '\"' || lineBuffer.front() == '<')
+                        lineBuffer.erase(0, 1);
+                    if (lineBuffer.back() == '\"' || lineBuffer.back() == '>')
+                        lineBuffer.pop_back();
+
                     // The include path is relative to the current shader file path
                     std::string pathOfThisFile;
                     getFilePath(path, pathOfThisFile);
@@ -71,37 +77,45 @@ namespace scTracer::GPU {
     class Shader
     {
     public:
-        GLuint shaderID;
-        Shader(const shaderRaw& raw, GLuint  type) {
-            std::cout << "Compiling shader: " << raw.path << std::endl;
-            shaderID = glCreateShader(type);
+        GLuint get() const {
+            return glID;
+        }
+        Shader(const shaderRaw& raw, GLuint type) {
+            std::cout << "Compiling shader: " << raw.path << " ......";
+            glID = glCreateShader(type);
             const GLchar* src = (const GLchar*)raw.code.c_str();
-            glShaderSource(shaderID, 1, &src, 0);
-            glCompileShader(shaderID);
+            glShaderSource(glID, 1, &src, 0);
+            glCompileShader(glID);
             GLint success = 0;
-            glGetShaderiv(shaderID, GL_COMPILE_STATUS, &success);
+            glGetShaderiv(glID, GL_COMPILE_STATUS, &success);
             if (success == GL_FALSE)
             {
                 std::string msg;
                 GLint logSize = 0;
-                glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &logSize);
+                glGetShaderiv(glID, GL_INFO_LOG_LENGTH, &logSize);
                 char* info = new char[logSize + 1];
-                glGetShaderInfoLog(shaderID, logSize, NULL, info);
+                glGetShaderInfoLog(glID, logSize, NULL, info);
                 msg += raw.path + "\n" + info;
                 delete[] info;
                 std::cerr << Config::LOG_RED << "Compiling shader[" << Config::LOG_RESET << raw.path
                     << Config::LOG_RED << "] failed: " << Config::LOG_RESET << msg << std::endl;
                 reset();
-                throw std::runtime_error(msg.c_str());
+                exit(1);
             }
+            std::cout << Config::LOG_GREEN << " Success!" << Config::LOG_RESET << std::endl;
         }
         ~Shader() {
             reset();
         }
         void reset() {
-            if (shaderID != 0)
-                glDeleteShader(shaderID);
-            shaderID = 0;
+            if (glID != 0)
+            {
+                glDeleteShader(glID);
+                glID = 0;
+            }
         }
+    private:
+        GLuint glID;
+
     };
 }

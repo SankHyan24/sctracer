@@ -19,6 +19,7 @@ namespace scTracer::Window {
         }
 
         void runLoop() {
+            std::cerr << "Running loop" << std::endl;
             __run();
         }
 
