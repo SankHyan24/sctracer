@@ -1,2 +1,6 @@
+aux_source_directory(./core _CORE_SRC_)
+target_sources(${_EXE_NAME_} PUBLIC ${_CORE_SRC_})
 aux_source_directory(./window _WINDOW_SRC_)
 target_sources(${_EXE_NAME_} PUBLIC ${_WINDOW_SRC_})
+aux_source_directory(./utils _UTILS_SRC_)
+target_sources(${_EXE_NAME_} PUBLIC ${_UTILS_SRC_})

@@ -16,6 +16,9 @@ target_include_directories(imgui PUBLIC ${IMGUI_DIR}/backends)
 # add glm
 add_subdirectory(glm)
 
+# add tinyobjloader
+add_subdirectory(tinyobjloader)
+
 # link libraries
-target_link_libraries(imgui glfw gl3w)
+target_link_libraries(imgui glfw gl3w )
 target_link_libraries(${_EXE_NAME_} imgui glfw OpenGL::GL gl3w glm)

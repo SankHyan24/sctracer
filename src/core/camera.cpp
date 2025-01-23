@@ -16,6 +16,21 @@ Camera::Camera(glm::vec3 position, glm::vec3 lookAt, float fovDegree) {
     updateCameraVectors();
 }
 
+Camera::Camera(glm::mat4 transform, float fovDegree) {
+    mPosition = glm::vec3(transform[3]);
+    mFront = glm::normalize(glm::vec3(transform[2]));
+    worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+    pitch = Utils::mathUtils::radians2degrees(asin(mFront.y));
+    yaw = Utils::mathUtils::radians2degrees(atan2(mFront.z, mFront.x));
+    radius = glm::length(mPosition);
+
+    mFov = Utils::mathUtils::degrees2radians(fovDegree);
+    mFocalDist = 0.01f;
+    mAperture = 0.0f;
+
+    updateCameraVectors();
+}
+
 void Camera::updateCameraVectors() {
     glm::vec3 front;
     front.x = cos(Utils::mathUtils::degrees2radians(pitch)) * cos(Utils::mathUtils::degrees2radians(yaw));

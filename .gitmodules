@@ -13,3 +13,6 @@
 [submodule "thirdparty/gl3w"]
 	path = thirdparty/gl3w
 	url = git@github.com:skaslev/gl3w
+[submodule "thirdparty/tinyobjloader"]
+	path = thirdparty/tinyobjloader
+	url = git@github.com:tinyobjloader/tinyobjloader.git

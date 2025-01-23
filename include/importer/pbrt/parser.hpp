@@ -1,277 +1,418 @@
-// // pbrt is Copyright(c) 1998-2020 Matt Pharr, Wenzel Jakob, and Greg Humphreys.
-// // The pbrt source code is licensed under the Apache License, Version 2.0.
-// // SPDX: Apache-2.0
+#pragma once
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <vector>
+#include <cassert>
 
-// #ifndef PBRT_PARSER_H
-// #define PBRT_PARSER_H
+#include <core/scene.hpp>
 
-// #include <pbrt/pbrt.h>
+namespace scTracer::Importer::Pbrt {
 
-// #include <pbrt/paramdict.h>
-// #include <pbrt/util/check.h>
-// #include <pbrt/util/containers.h>
-// #include <pbrt/util/error.h>
-// #include <pbrt/util/pstd.h>
+    class pbrtSceneBlock {
+    public:
+        const std::vector<std::string> blockTypeStrings{
+            "Camera",
+            "Film",
+            "Integrator",
+            "Transform",
+            "WorldBegin",
+            "MakeNamedMaterial",
+            "NamedMaterial",
+            "Shape",
+            "AttributeBegin",
+            "AttributeEnd",
+            "Unsupported"
+        };
+        enum class BlockType {
+            Camera,
+            Film,
+            Integrator,
+            Transform,
+            WorldBegin,
+            MakeNamedMaterial,
+            NamedMaterial,
+            Shape,
+            AttributeBegin,
+            AttributeEnd,
+            Unsupported
+        };
+        BlockType mBType;
+        pbrtSceneBlock(const std::vector<std::string>& content) : mContent(content) {
+            mBType = getBlockType(mContent[0]);
+            // std::cout << "Block Type: " << blockTypeStrings[static_cast<int>(mBType)] << std::endl;
+        }
+        ~pbrtSceneBlock() = default;
+    private:
+        static BlockType getBlockType(std::string firstLine) {
+            if (firstLine.find("Camera") != std::string::npos) {
+                return BlockType::Camera;
+            }
+            if (firstLine.find("Film") != std::string::npos) {
+                return BlockType::Film;
+            }
+            if (firstLine.find("Integrator") != std::string::npos) {
+                return BlockType::Integrator;
+            }
+            if (firstLine.find("Transform") != std::string::npos) {
+                return BlockType::Transform;
+            }
+            if (firstLine.find("WorldBegin") != std::string::npos) {
+                return BlockType::WorldBegin;
+            }
+            if (firstLine.find("MakeNamedMaterial") != std::string::npos) {
+                return BlockType::MakeNamedMaterial;
+            }
+            if (firstLine.find("NamedMaterial") != std::string::npos) {
+                return BlockType::NamedMaterial;
+            }
+            if (firstLine.find("Shape") != std::string::npos) {
+                return BlockType::Shape;
+            }
+            if (firstLine.find("AttributeBegin") != std::string::npos) {
+                return BlockType::AttributeBegin;
+            }
+            if (firstLine.find("AttributeEnd") != std::string::npos) {
+                return BlockType::AttributeEnd;
+            }
+            return BlockType::Camera;
+        }
+        std::vector<std::string> mContent;
+    public:
+        glm::mat4 getTransform() {
+            assert(mBType == BlockType::Transform);
+            std::string transformString = mContent[0];
+            transformString = transformString.substr(transformString.find("[") + 1, transformString.find("]") - transformString.find("[") - 1);
+            std::vector<float> transformValues;
+            std::string value;
+            for (int i = 0; i < transformString.size(); i++)
+                if (transformString[i] == ' ' && value.size() > 0) {
+                    transformValues.push_back(std::stof(value));
+                    value.clear();
+                }
+                else
+                    value += transformString[i];
+            glm::mat4 transform;
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < 4; j++)
+                    transform[i][j] = transformValues[i * 4 + j];
+            return transform;
+        }
 
-// #include <functional>
-// #include <map>
-// #include <memory>
-// #include <string>
-// #include <string_view>
+        float getCameraFOV() {
+            assert(mBType == BlockType::Camera);
+            std::string cameraString = mContent[1];
+            assert(cameraString.find("fov") == std::string::npos);
+            cameraString = cameraString.substr(cameraString.find("[") + 1, cameraString.find("]") - cameraString.find("[") - 1);
+            return std::stof(cameraString);
+        }
 
-// namespace pbrt {
+        int getMaxBounceDepth() {
+            assert(mBType == BlockType::Integrator);
+            std::string integratorString = mContent[1];
+            integratorString = integratorString.substr(integratorString.find("[") + 1, integratorString.find("]") - integratorString.find("[") - 1);
+            return std::stoi(integratorString);
+        }
 
-//     // ParserTarget Definition
-//     class ParserTarget {
-//     public:
-//         // ParserTarget Interface
-//         virtual void Scale(Float sx, Float sy, Float sz, FileLoc loc) = 0;
+        std::vector<int> getResolution(std::string& outputFileName) {
+            assert(mBType == BlockType::Film);
+            std::vector<int> resolution;
+            for (int i = 1; i < mContent.size(); i++) {
+                if (mContent[i].find("xresolution") != std::string::npos) {
+                    std::string xres = mContent[i];
+                    xres = xres.substr(xres.find("[") + 1, xres.find("]") - xres.find("[") - 1);
+                    resolution.push_back(std::stoi(xres));
+                }
+                if (mContent[i].find("yresolution") != std::string::npos) {
+                    std::string yres = mContent[i];
+                    yres = yres.substr(yres.find("[") + 1, yres.find("]") - yres.find("[") - 1);
+                    resolution.push_back(std::stoi(yres));
+                }
+                if (mContent[i].find("filename") != std::string::npos) {
+                    outputFileName = mContent[i];
+                    outputFileName = outputFileName.substr(outputFileName.find("[") + 1, outputFileName.find("]") - outputFileName.find("[") - 1);
+                }
+            }
+            outputFileName = outputFileName.substr(1, outputFileName.size() - 2);
+            return resolution;
+        }
 
-//         virtual void Shape(const std::string& name, ParsedParameterVector params,
-//                            FileLoc loc) = 0;
+        Core::Material getMaterial() {
+            assert(mBType == BlockType::MakeNamedMaterial);
+            std::string materialName = mContent[0];
+            materialName = materialName.substr(materialName.find("\"") + 1, materialName.find("\"", materialName.find("\"") + 1) - materialName.find("\"") - 1);
+            std::string materialType;
+            std::vector<float> reflectance;
+            for (int i = 1; i < mContent.size(); i++) {
+                if (mContent[i].find("string type") != std::string::npos) {
+                    materialType = mContent[i];
+                    materialType = materialType.substr(materialType.find("[") + 1, materialType.find("]") - materialType.find("[") - 1);
+                }
+                if (mContent[i].find("rgb reflectance") != std::string::npos) {
+                    std::string reflectanceString = mContent[i];
+                    reflectanceString = reflectanceString.substr(reflectanceString.find("[") + 1, reflectanceString.find("]") - reflectanceString.find("[") - 1);
+                    std::string value;
+                    for (int i = 0; i < reflectanceString.size(); i++)
+                        if (reflectanceString[i] == ' ' && value.size() > 0) {
+                            reflectance.push_back(std::stof(value));
+                            value.clear();
+                        }
+                        else
+                            value += reflectanceString[i];
+                }
+            }
+            Core::Material material;
+            material.name = materialName;
+            material.basecolor = glm::vec3(reflectance[0], reflectance[1], reflectance[2]);
+            material.mType = Core::getMaterialType(materialType);
+            material.typePreprocess();
+            return material;
+        }
 
-//         virtual ~ParserTarget();
+        std::string getMaterialName() {
+            assert(mBType == BlockType::NamedMaterial);
+            std::string materialName = mContent[0];
+            materialName = materialName.substr(materialName.find("\"") + 1, materialName.find("\"", materialName.find("\"") + 1) - materialName.find("\"") - 1);
+            return materialName;
+        }
 
-//         virtual void Option(const std::string& name, const std::string& value,
-//                             FileLoc loc) = 0;
+        Core::Mesh* getMeshFromFile() {
+            assert(mBType == BlockType::Shape);
+            Core::Mesh* mesh = new Core::Mesh();
+            std::string uvString, normalString, positionString, indexString;
+            std::string* currentString = nullptr;
 
-//         virtual void Identity(FileLoc loc) = 0;
-//         virtual void Translate(Float dx, Float dy, Float dz, FileLoc loc) = 0;
-//         virtual void Rotate(Float angle, Float ax, Float ay, Float az, FileLoc loc) = 0;
-//         virtual void LookAt(Float ex, Float ey, Float ez, Float lx, Float ly, Float lz,
-//                             Float ux, Float uy, Float uz, FileLoc loc) = 0;
-//         virtual void ConcatTransform(Float transform[16], FileLoc loc) = 0;
-//         virtual void Transform(Float transform[16], FileLoc loc) = 0;
-//         virtual void CoordinateSystem(const std::string&, FileLoc loc) = 0;
-//         virtual void CoordSysTransform(const std::string&, FileLoc loc) = 0;
-//         virtual void ActiveTransformAll(FileLoc loc) = 0;
-//         virtual void ActiveTransformEndTime(FileLoc loc) = 0;
-//         virtual void ActiveTransformStartTime(FileLoc loc) = 0;
-//         virtual void TransformTimes(Float start, Float end, FileLoc loc) = 0;
+            // split the content into position, uv, normal, and index strings
+            for (int i = 1; i < mContent.size(); i++) {
+                if (mContent[i].find("point3 P") != std::string::npos) {
+                    currentString = &positionString;
+                    *currentString += mContent[i];
+                    continue;
+                }
+                if (mContent[i].find("point2 uv") != std::string::npos) {
+                    currentString = &uvString;
+                    *currentString += mContent[i];
+                    continue;
+                }
+                if (mContent[i].find("normal N") != std::string::npos) {
+                    currentString = &normalString;
+                    *currentString += mContent[i];
+                    continue;
+                }
+                if (mContent[i].find("integer indices") != std::string::npos) {
+                    currentString = &indexString;
+                    *currentString += mContent[i];
+                    continue;
+                }
+                *currentString += " " + mContent[i];
+            }
 
-//         virtual void ColorSpace(const std::string& n, FileLoc loc) = 0;
-//         virtual void PixelFilter(const std::string& name, ParsedParameterVector params,
-//                                  FileLoc loc) = 0;
-//         virtual void Film(const std::string& type, ParsedParameterVector params,
-//                           FileLoc loc) = 0;
-//         virtual void Accelerator(const std::string& name, ParsedParameterVector params,
-//                                  FileLoc loc) = 0;
-//         virtual void Integrator(const std::string& name, ParsedParameterVector params,
-//                                 FileLoc loc) = 0;
-//         virtual void Camera(const std::string&, ParsedParameterVector params,
-//                             FileLoc loc) = 0;
-//         virtual void MakeNamedMedium(const std::string& name, ParsedParameterVector params,
-//                                      FileLoc loc) = 0;
-//         virtual void MediumInterface(const std::string& insideName,
-//                                      const std::string& outsideName, FileLoc loc) = 0;
-//         virtual void Sampler(const std::string& name, ParsedParameterVector params,
-//                              FileLoc loc) = 0;
+            // get the values from the strings
+            positionString = positionString.substr(positionString.find("[") + 1, positionString.find("]") - positionString.find("[") - 1);
+            uvString = uvString.substr(uvString.find("[") + 1, uvString.find("]") - uvString.find("[") - 1);
+            normalString = normalString.substr(normalString.find("[") + 1, normalString.find("]") - normalString.find("[") - 1);
+            indexString = indexString.substr(indexString.find("[") + 1, indexString.find("]") - indexString.find("[") - 1);
 
-//         virtual void WorldBegin(FileLoc loc) = 0;
-//         virtual void AttributeBegin(FileLoc loc) = 0;
-//         virtual void AttributeEnd(FileLoc loc) = 0;
-//         virtual void Attribute(const std::string& target, ParsedParameterVector params,
-//                                FileLoc loc) = 0;
-//         virtual void Texture(const std::string& name, const std::string& type,
-//                              const std::string& texname, ParsedParameterVector params,
-//                              FileLoc loc) = 0;
-//         virtual void Material(const std::string& name, ParsedParameterVector params,
-//                               FileLoc loc) = 0;
-//         virtual void MakeNamedMaterial(const std::string& name, ParsedParameterVector params,
-//                                        FileLoc loc) = 0;
-//         virtual void NamedMaterial(const std::string& name, FileLoc loc) = 0;
-//         virtual void LightSource(const std::string& name, ParsedParameterVector params,
-//                                  FileLoc loc) = 0;
-//         virtual void AreaLightSource(const std::string& name, ParsedParameterVector params,
-//                                      FileLoc loc) = 0;
-//         virtual void ReverseOrientation(FileLoc loc) = 0;
-//         virtual void ObjectBegin(const std::string& name, FileLoc loc) = 0;
-//         virtual void ObjectEnd(FileLoc loc) = 0;
-//         virtual void ObjectInstance(const std::string& name, FileLoc loc) = 0;
+            // remove extra spaces
+            for (int i = 0; i < positionString.size(); i++)
+                if (positionString[i] == ' ' && positionString[i + 1] == ' ') {
+                    positionString.erase(i, 1);
+                    i--;
+                }
+            for (int i = 0; i < uvString.size(); i++)
+                if (uvString[i] == ' ' && uvString[i + 1] == ' ') {
+                    uvString.erase(i, 1);
+                    i--;
+                }
+            for (int i = 0; i < normalString.size(); i++)
+                if (normalString[i] == ' ' && normalString[i + 1] == ' ') {
+                    normalString.erase(i, 1);
+                    i--;
+                }
+            for (int i = 0; i < indexString.size(); i++)
+                if (indexString[i] == ' ' && indexString[i + 1] == ' ') {
+                    indexString.erase(i, 1);
+                    i--;
+                }
 
-//         virtual void EndOfFiles() = 0;
+            // get values from strings to vectors
+            std::vector<float> positionValues;
+            std::vector<float> uvValues;
+            std::vector<float> normalValues;
+            std::vector<int> indexValues;
+            std::string value;
 
-//     protected:
-//         // ParserTarget Protected Methods
-//         template <typename... Args>
-//         void ErrorExitDeferred(const char* fmt, Args &&...args) const {
-//             errorExit = true;
-//             Error(fmt, std::forward<Args>(args)...);
-//         }
-//         template <typename... Args>
-//         void ErrorExitDeferred(const FileLoc* loc, const char* fmt, Args &&...args) const {
-//             errorExit = true;
-//             Error(loc, fmt, std::forward<Args>(args)...);
-//         }
+            for (int i = 0; i < positionString.size(); i++)
+                if (positionString[i] == ' ' && value.size() > 0) {
+                    positionValues.push_back(std::stof(value));
+                    value.clear();
+                }
+                else
+                    value += positionString[i];
+            value.clear();
+            for (int i = 0; i < uvString.size(); i++)
+                if (uvString[i] == ' ' && value.size() > 0) {
+                    uvValues.push_back(std::stof(value));
+                    value.clear();
+                }
+                else
+                    value += uvString[i];
+            value.clear();
+            for (int i = 0; i < normalString.size(); i++)
+                if (normalString[i] == ' ' && value.size() > 0) {
+                    normalValues.push_back(std::stof(value));
+                    value.clear();
+                }
+                else
+                    value += normalString[i];
+            value.clear();
+            for (int i = 0; i < indexString.size(); i++)
+                if (indexString[i] == ' ' && value.size() > 0) {
+                    indexValues.push_back(std::stoi(value));
+                    value.clear();
+                }
+                else
+                    value += indexString[i];
 
-//         mutable bool errorExit = false;
-//     };
+            for (int i = 0; i < positionValues.size(); i += 3)
+                mesh->vertices.push_back(glm::vec3(positionValues[i], positionValues[i + 1], positionValues[i + 2]));
+            for (int i = 0; i < uvValues.size(); i += 2)
+                mesh->uvs.push_back(glm::vec2(uvValues[i], uvValues[i + 1]));
+            for (int i = 0; i < normalValues.size(); i += 3)
+                mesh->normals.push_back(glm::vec3(normalValues[i], normalValues[i + 1], normalValues[i + 2]));
+            for (int i = 0; i < indexValues.size(); i += 3)
+                mesh->indices.push_back(glm::ivec3(indexValues[i], indexValues[i + 1], indexValues[i + 2]));
 
-//     // Scene Parsing Declarations
-//     void ParseFiles(ParserTarget* target, pstd::span<const std::string> filenames);
-//     void ParseString(ParserTarget* target, std::string str);
+            return mesh;
+        }
 
-//     // Token Definition
-//     struct Token {
-//         Token() = default;
-//         Token(std::string_view token, FileLoc loc) : token(token), loc(loc) {}
-//         std::string ToString() const;
-//         std::string_view token;
-//         FileLoc loc;
-//     };
+        Core::Mesh* getMeshFromOtherFile() {}
+    };
 
-//     // Tokenizer Definition
-//     class Tokenizer {
-//     public:
-//         // Tokenizer Public Methods
-//         Tokenizer(std::string str, std::string filename,
-//                   std::function<void(const char*, const FileLoc*)> errorCallback);
-// #if defined(PBRT_HAVE_MMAP) || defined(PBRT_IS_WINDOWS)
-//         Tokenizer(void* ptr, size_t len, std::string filename,
-//                   std::function<void(const char*, const FileLoc*)> errorCallback);
-// #endif
-//         ~Tokenizer();
+    class pbrtSceneFile { // from file string to code blocks
+    public:
+        pbrtSceneFile(const std::string& path) : mFilePath(path) {
+            loadFile();
+        }
+        ~pbrtSceneFile() = default;
 
-//         static std::unique_ptr<Tokenizer> CreateFromFile(
-//             const std::string& filename,
-//             std::function<void(const char*, const FileLoc*)> errorCallback);
-//         static std::unique_ptr<Tokenizer> CreateFromString(
-//             std::string str,
-//             std::function<void(const char*, const FileLoc*)> errorCallback);
+        std::vector<pbrtSceneBlock> mBlocks;
+    private:
+        void loadFile() {
+            std::ifstream file(mFilePath);
+            if (!file.is_open()) {
+                std::cerr << "Error: Could not open file " << mFilePath << std::endl;
+                return;
+            }
+            std::string line;
+            while (std::getline(file, line)) {
+                mContentLine.push_back(line);
+            }
+            std::vector<std::string> thisBlock;
+            for (int i = 0; i < mContentLine.size(); i++) {
+                if (mContentLine[i].size() == 0)
+                    continue;
+                if (mContentLine[i][0] != ' ') {
+                    if (thisBlock.size() > 0) {
+                        mBlocks.push_back(pbrtSceneBlock(thisBlock));
+                        thisBlock.clear();
+                    }
+                }
+                thisBlock.push_back(mContentLine[i]);
+            }
 
-//         pstd::optional<Token> Next();
+        }
+        std::string mFilePath;
+        std::vector<std::string> mContentLine;
+    };
 
-//         // Just for parse().
-//         // TODO? Have a method to set this?
-//         FileLoc loc;
+    class pbrtParser {
+    public:
+        pbrtParser() = default;
+        pbrtParser(const std::string& path) {
+            parse(path);
+        };
+        ~pbrtParser() = default;
+        Core::Scene parse(const std::string& path) {
+            std::cout << "start parsing file: " << path << std::endl;
+            auto& blocks = pbrtSceneFile(path).mBlocks;
+            // 
+            //
+            bool world_begin{ false };
+            // SCENE SETTINGS
+            glm::mat4 camera_transform;
+            float camera_fov{ 45.0f };
+            int max_bounce_depth{ 1024 };
+            int resolution_x{ 800 };
+            int resolution_y{ 600 };
+            std::string output_file_name;
 
-//     private:
-//         // Tokenizer Private Methods
-//         void CheckUTF(const void* ptr, int len) const;
-
-//         int getChar() {
-//             if (pos == end)
-//                 return EOF;
-//             int ch = *pos++;
-//             if (ch == '\n') {
-//                 ++loc.line;
-//                 loc.column = 0;
-//             }
-//             else
-//                 ++loc.column;
-//             return ch;
-//         }
-//         void ungetChar() {
-//             --pos;
-//             if (*pos == '\n')
-//                 // Don't worry about the column; we'll be going to the start of
-//                 // the next line again shortly...
-//                 --loc.line;
-//         }
-
-//         // Tokenizer Private Members
-//         // This function is called if there is an error during lexing.
-//         std::function<void(const char*, const FileLoc*)> errorCallback;
-
-// #if defined(PBRT_HAVE_MMAP) || defined(PBRT_IS_WINDOWS)
-//         // Scene files on disk are mapped into memory for lexing.  We need to
-//         // hold on to the starting pointer and total length so they can be
-//         // unmapped in the destructor.
-//         void* unmapPtr = nullptr;
-//         size_t unmapLength = 0;
-// #endif
-
-//         // If the input is stdin, then we copy everything until EOF into this
-//         // string and then start lexing.  This is a little wasteful (versus
-//         // tokenizing directly from stdin), but makes the implementation
-//         // simpler.
-//         std::string contents;
-
-//         // Pointers to the current position in the file and one past the end of
-//         // the file.
-//         const char* pos, * end;
-
-//         // If there are escaped characters in the string, we can't just return
-//         // a std::string_view into the mapped file. In that case, we handle the
-//         // escaped characters and return a std::string_view to sEscaped.  (And
-//         // thence, std::string_views from previous calls to Next() must be invalid
-//         // after a subsequent call, since we may reuse sEscaped.)
-//         std::string sEscaped;
-//     };
-
-//     // FormattingParserTarget Definition
-//     class FormattingParserTarget : public ParserTarget {
-//     public:
-//         FormattingParserTarget(bool toPly, bool upgrade) : toPly(toPly), upgrade(upgrade) {}
-//         ~FormattingParserTarget();
-
-//         void Option(const std::string& name, const std::string& value, FileLoc loc);
-//         void Identity(FileLoc loc);
-//         void Translate(Float dx, Float dy, Float dz, FileLoc loc);
-//         void Rotate(Float angle, Float ax, Float ay, Float az, FileLoc loc);
-//         void Scale(Float sx, Float sy, Float sz, FileLoc loc);
-//         void LookAt(Float ex, Float ey, Float ez, Float lx, Float ly, Float lz, Float ux,
-//                     Float uy, Float uz, FileLoc loc);
-//         void ConcatTransform(Float transform[16], FileLoc loc);
-//         void Transform(Float transform[16], FileLoc loc);
-//         void CoordinateSystem(const std::string&, FileLoc loc);
-//         void CoordSysTransform(const std::string&, FileLoc loc);
-//         void ActiveTransformAll(FileLoc loc);
-//         void ActiveTransformEndTime(FileLoc loc);
-//         void ActiveTransformStartTime(FileLoc loc);
-//         void TransformTimes(Float start, Float end, FileLoc loc);
-//         void TransformBegin(FileLoc loc);
-//         void TransformEnd(FileLoc loc);
-//         void ColorSpace(const std::string& n, FileLoc loc);
-//         void PixelFilter(const std::string& name, ParsedParameterVector params, FileLoc loc);
-//         void Film(const std::string& type, ParsedParameterVector params, FileLoc loc);
-//         void Sampler(const std::string& name, ParsedParameterVector params, FileLoc loc);
-//         void Accelerator(const std::string& name, ParsedParameterVector params, FileLoc loc);
-//         void Integrator(const std::string& name, ParsedParameterVector params, FileLoc loc);
-//         void Camera(const std::string&, ParsedParameterVector params, FileLoc loc);
-//         void MakeNamedMedium(const std::string& name, ParsedParameterVector params,
-//                              FileLoc loc);
-//         void MediumInterface(const std::string& insideName, const std::string& outsideName,
-//                              FileLoc loc);
-//         void WorldBegin(FileLoc loc);
-//         void AttributeBegin(FileLoc loc);
-//         void AttributeEnd(FileLoc loc);
-//         void Attribute(const std::string& target, ParsedParameterVector params, FileLoc loc);
-//         void Texture(const std::string& name, const std::string& type,
-//                      const std::string& texname, ParsedParameterVector params, FileLoc loc);
-//         void Material(const std::string& name, ParsedParameterVector params, FileLoc loc);
-//         void MakeNamedMaterial(const std::string& name, ParsedParameterVector params,
-//                                FileLoc loc);
-//         void NamedMaterial(const std::string& name, FileLoc loc);
-//         void LightSource(const std::string& name, ParsedParameterVector params, FileLoc loc);
-//         void AreaLightSource(const std::string& name, ParsedParameterVector params,
-//                              FileLoc loc);
-//         void Shape(const std::string& name, ParsedParameterVector params, FileLoc loc);
-//         void ReverseOrientation(FileLoc loc);
-//         void ObjectBegin(const std::string& name, FileLoc loc);
-//         void ObjectEnd(FileLoc loc);
-//         void ObjectInstance(const std::string& name, FileLoc loc);
-
-//         void EndOfFiles();
-
-//         std::string indent(int extra = 0) const {
-//             return std::string(catIndentCount + 4 * extra, ' ');
-//         }
-
-//     private:
-//         std::string upgradeMaterialIndex(const std::string& name, ParameterDictionary* dict,
-//                                          FileLoc loc) const;
-//         std::string upgradeMaterial(std::string* name, ParameterDictionary* dict,
-//                                     FileLoc loc) const;
-
-//         int catIndentCount = 0;
-//         bool toPly, upgrade;
-//         std::map<std::string, std::string> definedTextures;
-//         std::map<std::string, std::string> definedNamedMaterials;
-//         std::map<std::string, ParameterDictionary> namedMaterialDictionaries;
-//         std::map<std::string, std::string> definedObjectInstances;
-//     };
-
-// }  // namespace pbrt
-
-// #endif  // PBRT_PARSER_H
+            for (auto& block : blocks) {
+                if (world_begin)
+                    break;
+                switch (block.mBType) {
+                case pbrtSceneBlock::BlockType::Transform:
+                    camera_transform = block.getTransform();
+                    break;
+                case pbrtSceneBlock::BlockType::Integrator:
+                    max_bounce_depth = block.getMaxBounceDepth();
+                    break;
+                case pbrtSceneBlock::BlockType::Film:
+                {
+                    std::vector<int> resolution = block.getResolution(output_file_name);
+                    resolution_x = resolution[0];
+                    resolution_y = resolution[1];
+                    break;
+                }
+                case pbrtSceneBlock::BlockType::WorldBegin:
+                    world_begin = true;
+                    break;
+                case pbrtSceneBlock::BlockType::Unsupported:
+                    assert(false && "Unsupported block type");
+                default:
+                    break;
+                }
+            }
+            // world begin
+            std::vector<Core::Material> materials;
+            std::vector<Core::Mesh> meshes;
+            std::vector<Core::Instance> instances;
+            int currentMaterialIndex{ -1 };
+            for (auto& block : blocks) {
+                switch (block.mBType) {
+                case pbrtSceneBlock::BlockType::MakeNamedMaterial:
+                    materials.push_back(block.getMaterial());
+                    break;
+                case pbrtSceneBlock::BlockType::NamedMaterial:
+                {
+                    currentMaterialIndex = -1;
+                    std::string name = block.getMaterialName();
+                    for (int i = 0; i < materials.size(); i++)
+                        if (materials[i].name == name) {
+                            currentMaterialIndex = i;
+                            break;
+                        }
+                    assert(currentMaterialIndex != -1 && "Material not found");
+                    break;
+                }
+                case pbrtSceneBlock::BlockType::Shape: {
+                    Core::Mesh* mesh = block.getMeshFromFile();
+                    meshes.push_back(*mesh);
+                    instances.push_back(Core::Instance(glm::mat4(1.0f), currentMaterialIndex, meshes.size() - 1));
+                    break;
+                }
+                default:
+                    break;
+                }
+            }
+            Core::Scene scene(Core::Camera(camera_transform, camera_fov), Core::sceneSettings(resolution_x, resolution_y, max_bounce_depth));
+            scene.materials = materials;
+            for (auto& mesh : meshes)
+                scene.meshes.push_back(&mesh);
+            for (auto& instance : instances)
+                scene.instances.push_back(instance);
+            scene.printDebugInfo();
+            return scene;
+        }
+    };
+}

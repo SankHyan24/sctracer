@@ -5,6 +5,7 @@ namespace scTracer::Config {
     extern const int default_height;
 
     extern const std::string shaderFolder;
+    extern const std::string sceneFolder;
 
     extern const std::string  LOG_RED;
     extern const std::string  LOG_GREEN;

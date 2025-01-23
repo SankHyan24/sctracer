@@ -19,7 +19,7 @@ namespace scTracer::Window {
         }
 
         void runLoop() {
-            std::cerr << "Running loop" << std::endl;
+            std::cerr << Config::LOG_BLUE << "Running loop" << Config::LOG_RESET << std::endl;
             __run();
         }
 

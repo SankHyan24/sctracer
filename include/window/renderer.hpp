@@ -15,6 +15,7 @@
 #include <config.hpp>
 #include <core/scene.hpp>
 #include <gpu/program.hpp>
+#include <importer/pbrt/parser.hpp>
 
 namespace scTracer::Window {
 
@@ -58,8 +59,9 @@ namespace scTracer::Window {
 
     class RenderGPU {
     public:
-        RenderGPU() :mScene(std::make_unique<Core::Scene>()) {
+        RenderGPU() {
             std::cerr << "Render using [" << Config::LOG_GREEN << "GPU" << Config::LOG_RESET << "]" << std::endl;
+            // auto load scenes
         }
         ~RenderGPU() = default;
         void render() {
@@ -67,7 +69,7 @@ namespace scTracer::Window {
         }
 
         // Scene
-        std::unique_ptr<Core::Scene> mScene;
+        Core::Scene* mScene{ nullptr };
         // Program
         RenderPipeline mRenderPipeline;
         // Context
