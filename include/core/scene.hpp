@@ -6,24 +6,23 @@
 #include <core/instance.hpp>
 namespace scTracer::Core {
 
-    struct sceneSettings {
+    struct SceneSettings {
         int image_width;
         int image_height;
         int maxBounceDepth;
-        sceneSettings(int image_width, int image_height, int maxBounceDepth) : image_width(image_width), image_height(image_height), maxBounceDepth(maxBounceDepth) {}
+        SceneSettings(int image_width, int image_height, int maxBounceDepth) : image_width(image_width), image_height(image_height), maxBounceDepth(maxBounceDepth) {}
         void printDebugInfo() {
-            std::cout << "sceneSettings:" << std::endl;
+            std::cout << "SceneSettings:" << std::endl;
             std::cout << "image_width: " << image_width << std::endl;
             std::cout << "image_height: " << image_height << std::endl;
             std::cout << "maxBounceDepth: " << maxBounceDepth << std::endl;
         }
     };
 
-
     class Scene
     {
     public:
-        Scene(const Camera& camera, const sceneSettings& settings) : camera(camera), settings(settings) {
+        Scene(const Camera& camera, const SceneSettings& settings) : camera(camera), settings(settings) {
         };
         // copy constructor
         Scene(const Scene& scene) : camera(scene.camera), settings(scene.settings) {
@@ -44,25 +43,25 @@ namespace scTracer::Core {
             std::cout << "Scene::printDebugInfo" << std::endl;
             std::cout << "Assets: materials[" << materials.size() << "] meshes[" << meshes.size() << "] instances[" << instances.size() << "]" << std::endl;
 
-            // // camera
-            // camera.printDebugInfo();
-            // // settings
-            // settings.printDebugInfo();
-            // // materials
-            // for (int i = 0;i < materials.size();i++) {
-            //     std::cout << "[" << i << "]" << std::endl;
-            //     materials[i].printDebugInfo();
-            // }
-            // // meshes
-            // for (int i = 0;i < meshes.size();i++) {
-            //     std::cout << "[" << i << "]" << std::endl;
-            //     meshes[i]->printDebugInfo();
-            // }
-            // // instances
-            // for (int i = 0;i < instances.size();i++) {
-            //     std::cout << "[" << i << "]" << std::endl;
-            //     instances[i].printDebugInfo();
-            // }
+            // camera
+            camera.printDebugInfo();
+            // settings
+            settings.printDebugInfo();
+            // materials
+            for (int i = 0;i < materials.size();i++) {
+                std::cout << "[" << i << "]" << std::endl;
+                materials[i].printDebugInfo();
+            }
+            // meshes
+            for (int i = 0;i < meshes.size();i++) {
+                std::cout << "[" << i << "]" << std::endl;
+                meshes[i]->printDebugInfo();
+            }
+            // instances
+            for (int i = 0;i < instances.size();i++) {
+                std::cout << "[" << i << "]" << std::endl;
+                instances[i].printDebugInfo();
+            }
         }
 
     private:
@@ -71,7 +70,7 @@ namespace scTracer::Core {
     public:
         // scene settings
         Camera camera;
-        sceneSettings settings;
+        SceneSettings settings;
 
         // assets
         std::vector<Material> materials;

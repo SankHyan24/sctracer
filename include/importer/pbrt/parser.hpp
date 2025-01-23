@@ -405,7 +405,7 @@ namespace scTracer::Importer::Pbrt {
                     break;
                 }
             }
-            Core::Scene scene(Core::Camera(camera_transform, camera_fov), Core::sceneSettings(resolution_x, resolution_y, max_bounce_depth));
+            Core::Scene scene(Core::Camera(camera_transform, camera_fov), Core::SceneSettings(resolution_x, resolution_y, max_bounce_depth));
             scene.materials = materials;
             for (auto& mesh : meshes)
                 scene.meshes.push_back(&mesh);
