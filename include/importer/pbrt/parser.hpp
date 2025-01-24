@@ -287,6 +287,126 @@ namespace scTracer::Importer::Pbrt {
         }
 
         Core::Mesh* getMeshFromOtherFile() {}
+
+        Core::Light getLight() {
+            assert(mBType == BlockType::AttributeBegin);
+            Core::Light light;
+            std::string lightMatTypeline; // @sc: only for diffuse now
+            std::string materialName;
+            lightMatTypeline = mContent[1];
+            materialName = lightMatTypeline.substr(lightMatTypeline.find("\"") + 1, lightMatTypeline.find("\"", lightMatTypeline.find("\"") + 1) - lightMatTypeline.find("\"") - 1);
+            lightMatTypeline = lightMatTypeline.substr(0, lightMatTypeline.find("\"") - 1);
+
+            std::vector<std::string> lightDetails;
+            bool index_lightShapeBegin{ false };
+            for (int i = 2;i < mContent.size();i++) {
+                if (mContent[i].find("rgb L") != std::string::npos) {
+                    std::string emissionString = mContent[i];
+                    emissionString = emissionString.substr(emissionString.find("[") + 1, emissionString.find("]") - emissionString.find("[") - 1);
+                    std::vector<float> emissionValues;
+                    std::string value;
+                    for (int i = 0; i < emissionString.size(); i++)
+                        if (emissionString[i] == ' ' && value.size() > 0) {
+                            emissionValues.push_back(std::stof(value));
+                            value.clear();
+                        }
+                        else
+                            value += emissionString[i];
+                    light.emission = glm::vec3(emissionValues[0], emissionValues[1], emissionValues[2]);
+                }
+                if (mContent[i].find("NamedMaterial") != std::string::npos) {
+                    index_lightShapeBegin = true;
+                }
+                if (index_lightShapeBegin)
+                    lightDetails.push_back(mContent[i]);
+            }
+
+            int lightDetailsIndex{ 0 };
+            std::string lightTransformString;
+            glm::mat4 lightTransform;
+            bool have_lightTransform{ false };
+
+            for (int i = 0;i < lightDetails.size();i++)
+                if (lightDetails[i].find("Transform") != std::string::npos) {
+                    lightTransformString = lightDetails[i];
+                    lightDetailsIndex = i;
+                    have_lightTransform = true;
+                    break;
+                }
+
+            if (have_lightTransform) {
+                lightTransformString = lightTransformString.substr(lightTransformString.find("[") + 1, lightTransformString.find("]") - lightTransformString.find("[") - 1);
+                std::vector<float> transformValues;
+                std::string value;
+                for (int i = 0; i < lightTransformString.size(); i++)
+                    if (lightTransformString[i] == ' ' && value.size() > 0) {
+                        transformValues.push_back(std::stof(value));
+                        value.clear();
+                    }
+                    else
+                        value += lightTransformString[i];
+                for (int i = 0; i < 4; i++)
+                    for (int j = 0; j < 4; j++)
+                        lightTransform[i][j] = transformValues[i * 4 + j];
+            }
+
+
+            std::string lightShapeTypeString;
+            for (;lightDetailsIndex < lightDetails.size();lightDetailsIndex++)
+                if (lightDetails[lightDetailsIndex].find("Shape") != std::string::npos) {
+                    lightShapeTypeString = lightDetails[lightDetailsIndex];
+                    break;
+                }
+            // trianglemesh sphere direction(not implemented)
+            if (lightShapeTypeString.find("trianglemesh") != std::string::npos) {
+                light.type = Core::LightType::RectLight;
+                std::vector<glm::vec3> positions;
+                for (;lightDetailsIndex < lightDetails.size();lightDetailsIndex++)
+                    if (lightDetails[lightDetailsIndex].find("point3 P") != std::string::npos) {
+                        std::string positionString = lightDetails[lightDetailsIndex];
+                        positionString = positionString.substr(positionString.find("[") + 1, positionString.find("]") - positionString.find("[") - 1);
+                        std::vector<float> positionValues;
+                        std::string value;
+                        for (int i = 0; i < positionString.size(); i++)
+                            if (positionString[i] == ' ' && value.size() > 0) {
+                                positionValues.push_back(std::stof(value));
+                                value.clear();
+                            }
+                            else
+                                value += positionString[i];
+                        // get the positions
+                        for (int i = 0; i < positionValues.size(); i += 3)
+                            positions.push_back(glm::vec3(positionValues[i], positionValues[i + 1], positionValues[i + 2]));
+                        break;
+                    }
+                assert(positions.size() == 4 && "Only support rectangle light now");
+                light.position = positions[0];
+                light.u = positions[1] - positions[0];
+                light.v = positions[3] - positions[0];
+                light.area = glm::length(glm::cross(light.u, light.v));
+            }
+            else if (lightShapeTypeString.find("sphere") != std::string::npos) {
+                light.type = Core::LightType::SphereLight;
+                for (;lightDetailsIndex < lightDetails.size();lightDetailsIndex++)
+                    if (lightDetails[lightDetailsIndex].find("float radius") != std::string::npos) {
+                        std::string radiusString = lightDetails[lightDetailsIndex];
+                        radiusString = radiusString.substr(radiusString.find("[") + 1, radiusString.find("]") - radiusString.find("[") - 1);
+                        light.position = glm::vec3(lightTransform[3][0], lightTransform[3][1], lightTransform[3][2]);
+                        light.radius = std::stof(radiusString);
+                        light.area = 4.0f * glm::pi<float>() * light.radius * light.radius;
+                        break;
+                    }
+            }
+            else
+                assert(false && "Unsupported light shape type");
+            return light;
+        }
+
+    private:
+
+
+
+
     };
 
     class pbrtSceneFile { // from file string to code blocks
@@ -336,8 +456,6 @@ namespace scTracer::Importer::Pbrt {
         Core::Scene parse(const std::string& path) {
             std::cout << "start parsing file: " << path << std::endl;
             auto& blocks = pbrtSceneFile(path).mBlocks;
-            // 
-            //
             bool world_begin{ false };
             // SCENE SETTINGS
             glm::mat4 camera_transform;
@@ -377,7 +495,9 @@ namespace scTracer::Importer::Pbrt {
             std::vector<Core::Material> materials;
             std::vector<Core::Mesh> meshes;
             std::vector<Core::Instance> instances;
+            std::vector<Core::Light> lights;
             int currentMaterialIndex{ -1 };
+            bool attribute_begin{ false };
             for (auto& block : blocks) {
                 switch (block.mBType) {
                 case pbrtSceneBlock::BlockType::MakeNamedMaterial:
@@ -401,16 +521,27 @@ namespace scTracer::Importer::Pbrt {
                     instances.push_back(Core::Instance(glm::mat4(1.0f), currentMaterialIndex, meshes.size() - 1));
                     break;
                 }
+                case pbrtSceneBlock::BlockType::AttributeBegin:
+                    attribute_begin = true;
+                    lights.push_back(block.getLight());
+                    break;
+                case pbrtSceneBlock::BlockType::AttributeEnd:
+                    attribute_begin = false;
+                    break;
                 default:
                     break;
                 }
             }
+            assert(world_begin && "WorldBegin not found");
+            assert(attribute_begin && "AttributeEnd not found");
             Core::Scene scene(Core::Camera(camera_transform, camera_fov), Core::SceneSettings(resolution_x, resolution_y, max_bounce_depth));
             scene.materials = materials;
             for (auto& mesh : meshes)
                 scene.meshes.push_back(&mesh);
             for (auto& instance : instances)
                 scene.instances.push_back(instance);
+            for (auto& light : lights)
+                scene.lights.push_back(light);
             scene.printDebugInfo();
             return scene;
         }

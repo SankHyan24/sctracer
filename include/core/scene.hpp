@@ -4,6 +4,7 @@
 #include <core/material.hpp>
 #include <core/mesh.hpp>
 #include <core/instance.hpp>
+#include <core/light.hpp>
 namespace scTracer::Core {
 
     struct SceneSettings {
@@ -62,6 +63,11 @@ namespace scTracer::Core {
                 std::cout << "[" << i << "]" << std::endl;
                 instances[i].printDebugInfo();
             }
+            // lights
+            for (int i = 0;i < lights.size();i++) {
+                std::cout << "[" << i << "]" << std::endl;
+                lights[i].printDebugInfo();
+            }
         }
 
     private:
@@ -75,6 +81,7 @@ namespace scTracer::Core {
         // assets
         std::vector<Material> materials;
         std::vector<Mesh*> meshes; // pointers to mesh because mesh is a heavy object
+        std::vector<Light> lights;
 
         // instances
         std::vector<Instance> instances;
