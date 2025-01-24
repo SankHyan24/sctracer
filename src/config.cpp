@@ -3,6 +3,7 @@ namespace scTracer::Config {
     const int default_width = 800;
     const int default_height = 600;
     const std::string shaderFolder = "shaders/";
+    const std::string sceneFolder = "assets/";
 
 
     const std::string  LOG_RED = "\033[1;31m";
