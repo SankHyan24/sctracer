@@ -19,7 +19,6 @@ namespace scTracer::Core {
             std::cout << "Material Index: " << mMaterialIndex << std::endl;
             std::cout << "Mesh Index: " << mMeshIndex << std::endl;
         }
-    private:
         glm::mat4 mTransform;
         int mMaterialIndex{ -1 };
         int mMeshIndex{ -1 };

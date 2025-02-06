@@ -39,18 +39,21 @@ namespace scTracer::Core {
         ~Scene() {
         }
         void processScene() {
-            // TODO vertex n bvh
-            std::cerr << "Build BVH for Meshes ..." << std::endl;
-            createBLAS();
-            std::cerr << "Preprocessing Scene ..." << std::endl;
-
-            // prepare vertex data
-            int vertexCount = 0;
-            for (auto& mesh : meshes) {
-                vertexCount += mesh->vertices.size();
-            }
-
-
+            std::cerr << "Building BVH for Meshes ...";
+            __createBLAS();
+            std::cerr << "Done!" << std::endl;
+            std::cerr << "Building BVH for Scene ...";
+            __createTLAS();
+            std::cerr << "Done!" << std::endl;
+            // Flatten BVH
+            std::cerr << "Flattening BVH for GPU ...";
+            std::cerr << "Done!" << std::endl;
+            // TODO
+            // // prepare vertex data
+            // int vertexCount = 0;
+            // for (auto& mesh : meshes) {
+            //     vertexCount += mesh->vertices.size();
+            // }
         }
 
         void deleteMeshes() {
@@ -102,14 +105,53 @@ namespace scTracer::Core {
         // instances
         std::vector<Instance> instances;
 
-        void createBLAS()
+    private:
+        void __createBLAS()// create Bottom Level Acceleration Structures(meshes BVH)
         {
-            // create Bottom Level Acceleration Structures(meshes BVH)
 #pragma omp parallel for
             for (int i = 0; i < meshes.size(); i++)
-            {
-                std::cout << "Building BVH for " << meshes[i]->meshName << std::endl;
                 meshes[i]->BuildBVH();
+        }
+        void __createTLAS()// create Top Level Acceleration Structures(instances BVH)
+        {
+            // TODO
+            std::vector<BVH::BoundingBox> bounds(instances.size());
+            for (int i = 0;i < instances.size();i++) {
+                BVH::BoundingBox bounds = meshes[instances[i].mMeshIndex]->bvh->getWorldBounds();
+                glm::mat4 transform = instances[i].getTransform();
+
+                glm::vec3 minBound = bounds.pmin;
+                glm::vec3 maxBound = bounds.pmax;
+
+                // get the new bounds
+                glm::vec3 newMinBound = glm::vec3(transform * glm::vec4(minBound, 1.0f));
+                glm::vec3 newMaxBound = glm::vec3(transform * glm::vec4(maxBound, 1.0f));
+
+                glm::vec3 right = glm::vec3(transform[0][0], transform[0][1], transform[0][2]);
+                glm::vec3 up = glm::vec3(transform[1][0], transform[1][1], transform[1][2]);
+                glm::vec3 forward = glm::vec3(transform[2][0], transform[2][1], transform[2][2]);
+                glm::vec3 translation = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
+
+                glm::vec3 xa = right * minBound.x;
+                glm::vec3 xb = right * maxBound.x;
+
+                glm::vec3 ya = up * minBound.y;
+                glm::vec3 yb = up * maxBound.y;
+
+                glm::vec3 za = forward * minBound.z;
+                glm::vec3 zb = forward * maxBound.z;
+
+                minBound = glm::vec3(std::min(xa.x, xb.x) + std::min(ya.x, yb.x) + std::min(za.x, zb.x) + translation.x,
+                                     std::min(xa.y, xb.y) + std::min(ya.y, yb.y) + std::min(za.y, zb.y) + translation.y,
+                                     std::min(xa.z, xb.z) + std::min(ya.z, yb.z) + std::min(za.z, zb.z) + translation.z);
+
+                maxBound = glm::vec3(std::max(xa.x, xb.x) + std::max(ya.x, yb.x) + std::max(za.x, zb.x) + translation.x,
+                                     std::max(xa.y, xb.y) + std::max(ya.y, yb.y) + std::max(za.y, zb.y) + translation.y,
+                                     std::max(xa.z, xb.z) + std::max(ya.z, yb.z) + std::max(za.z, zb.z) + translation.z);
+
+
+
+
             }
         }
     };
