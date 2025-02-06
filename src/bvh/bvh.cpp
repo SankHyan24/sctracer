@@ -69,10 +69,8 @@ namespace scTracer::BVH {
             node->startIndex = static_cast<int>(mPackedIndices.size());
             node->primsNum = req.numprims;
 
-            for (auto i = 0; i < req.numprims; ++i)
-            {
+            for (auto i = 0; i < req.numprims; i++)
                 mPackedIndices.push_back(primindices[req.startidx + i]);
-            }
         }
         else
         {

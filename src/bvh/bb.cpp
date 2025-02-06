@@ -1,4 +1,5 @@
 #include <bvh/bb.hpp>
+// BVH part Code learn from https://github.com/knightcrawler25/GLSL-PathTracer
 
 namespace scTracer::BVH {
 
