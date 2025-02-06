@@ -80,6 +80,11 @@ namespace scTracer::Window {
         GPU::Program* ToneMap;
     };
 
+    struct RenderFrameBuffers {
+
+    };
+
+
     class GLFWManager
     {
     public:
@@ -167,9 +172,17 @@ namespace scTracer::Window {
 
         void __loadShaders() {
             mRenderPipeline.load();
-
         }
 
+
+        void __initGPUDateBuffers() {
+            glPixelStorei(GL_PACK_ALIGNMENT, 1);
+            // BVHs
+            // Create buffer and texture for vertex indices
+            // TODO fix this
+
+
+        }
     };
 
 

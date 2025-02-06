@@ -36,6 +36,18 @@ namespace scTracer::Core {
         }
         ~Scene() {
         }
+        void processScene() {
+            // TODO vertex n bvh
+
+            // prepare vertex data
+            int vertexCount = 0;
+            for (auto& mesh : meshes) {
+                vertexCount += mesh->vertices.size();
+            }
+
+
+        }
+
         void deleteMeshes() {
             for (auto& mesh : meshes)
                 delete mesh;
@@ -43,31 +55,30 @@ namespace scTracer::Core {
         void printDebugInfo() {
             std::cout << "Scene::printDebugInfo" << std::endl;
             std::cout << "Assets: materials[" << materials.size() << "] meshes[" << meshes.size() << "] instances[" << instances.size() << "]" << std::endl;
-
-            // // camera
-            // camera.printDebugInfo();
-            // // settings
-            // settings.printDebugInfo();
-            // // materials
-            // for (int i = 0;i < materials.size();i++) {
-            //     std::cout << "[" << i << "]" << std::endl;
-            //     materials[i].printDebugInfo();
-            // }
-            // // meshes
-            // for (int i = 0;i < meshes.size();i++) {
-            //     std::cout << "[" << i << "]" << std::endl;
-            //     meshes[i]->printDebugInfo();
-            // }
-            // // instances
-            // for (int i = 0;i < instances.size();i++) {
-            //     std::cout << "[" << i << "]" << std::endl;
-            //     instances[i].printDebugInfo();
-            // }
-            // // lights
-            // for (int i = 0;i < lights.size();i++) {
-            //     std::cout << "[" << i << "]" << std::endl;
-            //     lights[i].printDebugInfo();
-            // }
+            // camera
+            camera.printDebugInfo();
+            // settings
+            settings.printDebugInfo();
+            // materials
+            for (int i = 0;i < materials.size();i++) {
+                std::cout << "[" << i << "]" << std::endl;
+                materials[i].printDebugInfo();
+            }
+            // meshes
+            for (int i = 0;i < meshes.size();i++) {
+                std::cout << "[" << i << "]" << std::endl;
+                meshes[i]->printDebugInfo();
+            }
+            // instances
+            for (int i = 0;i < instances.size();i++) {
+                std::cout << "[" << i << "]" << std::endl;
+                instances[i].printDebugInfo();
+            }
+            // lights
+            for (int i = 0;i < lights.size();i++) {
+                std::cout << "[" << i << "]" << std::endl;
+                lights[i].printDebugInfo();
+            }
         }
 
     private:
