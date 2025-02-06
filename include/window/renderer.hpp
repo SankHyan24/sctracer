@@ -28,7 +28,9 @@ namespace scTracer::Window {
 
     struct RenderPipeline {
         void init() {
+            // vertex shader
             vertexShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "vertex.glsl"), GL_VERTEX_SHADER);
+            // fragment shaders
             debuggerShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "debugger.glsl"), GL_FRAGMENT_SHADER);
             pathTracerShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "pathtracer.glsl"), GL_FRAGMENT_SHADER);
             pathTracerLowResolutionShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "pathtracer_low_resolution.glsl"), GL_FRAGMENT_SHADER);
@@ -36,6 +38,7 @@ namespace scTracer::Window {
             toneMapShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "tonemap.glsl"), GL_FRAGMENT_SHADER);
         }
         void load() {
+            // programs
             Debugger = new scTracer::GPU::Program({ *vertexShader, *debuggerShader });
             PathTracer = new scTracer::GPU::Program({ *vertexShader, *pathTracerShader });
             PathTracerLowResolution = new scTracer::GPU::Program({ *vertexShader, *pathTracerLowResolutionShader });
@@ -117,7 +120,8 @@ namespace scTracer::Window {
             mRenderPipeline.init();
             __loadSceneLists();
             __loadScene();
-            // __loadShaders();
+            __loadShaders();
+
         }
 
         void render() {
@@ -156,10 +160,10 @@ namespace scTracer::Window {
         void __loadScene() {
             assert(mSceneListPath.size() > 0);
             __loadScene(mSceneListPath[0]);
-
         }
 
         void __loadScene(std::string sceneName) {
+            // load and process scene
             std::string sceneFullPath = mScenesRootPath + sceneName;
             std::string scenePbrtName;
             for (const auto& entry : std::filesystem::directory_iterator(sceneFullPath))
@@ -169,9 +173,7 @@ namespace scTracer::Window {
                 }
             std::cerr << "Loading scene [" << scenePbrtName << "]" << std::endl;
             mScene = scTracer::Importer::Pbrt::pbrtParser::parse(scenePbrtName);
-            mScene->processScene();
-
-
+            if (!mScene->isInitialized()) mScene->processScene();
         }
 
         void __loadShaders() {

@@ -40,7 +40,7 @@ namespace scTracer::Core {
         std::cerr << "Done!" << std::endl;
         // TODO
         // // prepare vertex data
-        std::cerr << "Preparing vertex data ...";
+        std::cerr << "Preparing meshes data ...";
         int vertexCount = 0;
         for (int i = 0;i < meshes.size();i++) {
             int numIndex = meshes[i]->bvh->getNumIndices();
@@ -59,8 +59,22 @@ namespace scTracer::Core {
             sceneVertices.insert(sceneVertices.end(), meshes[i]->vertices.begin(), meshes[i]->vertices.end());
             sceneNormals.insert(sceneNormals.end(), meshes[i]->normals.begin(), meshes[i]->normals.end());
             sceneMeshUvs.insert(sceneMeshUvs.end(), meshes[i]->uvs.begin(), meshes[i]->uvs.end());
-
+            vertexCount += meshes[i]->vertices.size();
         }
+        std::cerr << "Done!" << std::endl;
+
+        // prepare instance data(transforms)
+        std::cerr << "Preparing instances data ...";
+        transforms.resize(instances.size());
+        for (int i = 0;i < instances.size();i++)
+            transforms[i] = instances[i].getTransform();
+        std::cerr << "Done!" << std::endl;
+
+        // prepare texture data
+        std::cerr << "Preparing textures data ...";
+        std::cerr << "Done!" << std::endl;
+
+        initialized = true;
     }
 
     void Scene::deleteMeshes() {

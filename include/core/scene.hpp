@@ -31,6 +31,9 @@ namespace scTracer::Core {
         void deleteMeshes();
         void printDebugInfo();
 
+        bool isDirty() const { return dirty; }
+        bool isInitialized() const { return initialized; }
+
     private:
         bool dirty{ true };
         bool initialized{ false };
@@ -62,7 +65,6 @@ namespace scTracer::Core {
         BVH::BVHFlattor bvhFlattor;
         void __createBLAS();// create Bottom Level Acceleration Structures(meshes BVH)
         void __createTLAS();// create Top Level Acceleration Structures(instances BVH)
-
     };
 
 }
