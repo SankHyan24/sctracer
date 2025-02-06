@@ -1,4 +1,8 @@
 #pragma once
+#include <iostream>
+#include <string>
+#include <vector>
+
 #include <utils/mathUtils.hpp>
 #include <glm/glm.hpp>
 
@@ -13,14 +17,7 @@ namespace scTracer::Core {
         "conductor"
     };
 
-    MaterialType getMaterialType(const std::string& type) {
-        if (type == "diffuse")
-            return MaterialType::Diffuse;
-        if (type == "conductor")
-            return MaterialType::Conductor;
-        return MaterialType::Diffuse;
-    }
-
+    MaterialType getMaterialType(const std::string& type);
     class Material {
 
     public:

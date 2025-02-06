@@ -30,6 +30,8 @@ namespace scTracer::BVH {
         // context
         int currentTriIndex{ 0 };
         int currentNodeIndex{ 0 };
+        int recLvl{ 0 };
+        int deepestRecLvl{ 0 };
 
     private:
         void _flattenBLAS();

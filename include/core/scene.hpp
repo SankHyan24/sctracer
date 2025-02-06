@@ -7,6 +7,8 @@
 #include <core/mesh.hpp>
 #include <core/instance.hpp>
 #include <core/light.hpp>
+
+#include <bvh/flattenbvh.hpp>
 namespace scTracer::Core {
 
     struct SceneSettings {
@@ -26,6 +28,7 @@ namespace scTracer::Core {
     {
     public:
         Scene(const Camera& camera, const SceneSettings& settings) : camera(camera), settings(settings) {
+            sceneBVH = new BVH::BvhStructure();
         };
         // copy constructor
         Scene(const Scene& scene) : camera(scene.camera), settings(scene.settings) {
@@ -37,6 +40,8 @@ namespace scTracer::Core {
                 instances.push_back(instance);
         }
         ~Scene() {
+            delete sceneBVH;
+            deleteMeshes();
         }
         void processScene() {
             std::cerr << "Building BVH for Meshes ...";
@@ -47,6 +52,7 @@ namespace scTracer::Core {
             std::cerr << "Done!" << std::endl;
             // Flatten BVH
             std::cerr << "Flattening BVH for GPU ...";
+            bvhFlattor.flatten(sceneBVH, meshes, instances);
             std::cerr << "Done!" << std::endl;
             // TODO
             // // prepare vertex data
@@ -106,6 +112,10 @@ namespace scTracer::Core {
         std::vector<Instance> instances;
 
     private:
+        // for bvh
+        BVH::BoundingBox sceneBounds;
+        BVH::BvhStructure* sceneBVH;
+        BVH::BVHFlattor bvhFlattor;
         void __createBLAS()// create Bottom Level Acceleration Structures(meshes BVH)
         {
 #pragma omp parallel for
@@ -114,14 +124,13 @@ namespace scTracer::Core {
         }
         void __createTLAS()// create Top Level Acceleration Structures(instances BVH)
         {
-            // TODO
             std::vector<BVH::BoundingBox> bounds(instances.size());
             for (int i = 0;i < instances.size();i++) {
-                BVH::BoundingBox bounds = meshes[instances[i].mMeshIndex]->bvh->getWorldBounds();
+                BVH::BoundingBox bbox = meshes[instances[i].mMeshIndex]->bvh->getWorldBounds();
                 glm::mat4 transform = instances[i].getTransform();
 
-                glm::vec3 minBound = bounds.pmin;
-                glm::vec3 maxBound = bounds.pmax;
+                glm::vec3 minBound = bbox.pmin;
+                glm::vec3 maxBound = bbox.pmax;
 
                 // get the new bounds
                 glm::vec3 newMinBound = glm::vec3(transform * glm::vec4(minBound, 1.0f));
@@ -148,11 +157,11 @@ namespace scTracer::Core {
                 maxBound = glm::vec3(std::max(xa.x, xb.x) + std::max(ya.x, yb.x) + std::max(za.x, zb.x) + translation.x,
                                      std::max(xa.y, xb.y) + std::max(ya.y, yb.y) + std::max(za.y, zb.y) + translation.y,
                                      std::max(xa.z, xb.z) + std::max(ya.z, yb.z) + std::max(za.z, zb.z) + translation.z);
-
-
-
-
+                bounds[i].pmin = newMinBound;
+                bounds[i].pmax = newMaxBound;
             }
+            sceneBVH->build(&bounds[0], bounds.size());
+            sceneBounds = sceneBVH->getWorldBounds();
         }
     };
 
