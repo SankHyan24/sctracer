@@ -1,9 +1,15 @@
 #pragma once
+#include <bvh/bvh.hpp>
+
 namespace scTracer::Core {
     class Mesh {
     public:
-        Mesh() = default;
-        ~Mesh() = default;
+        Mesh() {
+            bvh = new BVH::BvhStructure();
+        };
+        ~Mesh() {
+            delete bvh;
+        };
 
         void printDebugInfo() {
             std::cout << "Mesh Debug Info:" << std::endl;
@@ -17,5 +23,11 @@ namespace scTracer::Core {
         std::vector<glm::vec3> normals;
         std::vector<glm::vec2> uvs;
         std::vector<glm::ivec3> indices;
+
+        BVH::BvhStructure* bvh;
+        std::string meshName{ "Unnamed Mesh" };
+
+        // BVH
+        void BuildBVH();
     };
 }

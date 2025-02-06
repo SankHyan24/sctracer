@@ -453,8 +453,8 @@ namespace scTracer::Importer::Pbrt {
             parse(path);
         };
         ~pbrtParser() = default;
-        Core::Scene parse(const std::string& path) {
-            std::cout << "start parsing file: " << path << std::endl;
+        static Core::Scene* parse(const std::string& path) {
+            std::cout << "start parsing file: " << path << "......";
             auto& blocks = pbrtSceneFile(path).mBlocks;
             bool world_begin{ false };
             // SCENE SETTINGS
@@ -493,16 +493,17 @@ namespace scTracer::Importer::Pbrt {
             }
             // world begin
             std::vector<Core::Material> materials;
-            std::vector<Core::Mesh> meshes;
+            std::vector<Core::Mesh*> meshes;
             std::vector<Core::Instance> instances;
             std::vector<Core::Light> lights;
             int currentMaterialIndex{ -1 };
             bool attribute_begin{ false };
             for (auto& block : blocks) {
                 switch (block.mBType) {
-                case pbrtSceneBlock::BlockType::MakeNamedMaterial:
+                case pbrtSceneBlock::BlockType::MakeNamedMaterial: {
                     materials.push_back(block.getMaterial());
                     break;
+                }
                 case pbrtSceneBlock::BlockType::NamedMaterial:
                 {
                     currentMaterialIndex = -1;
@@ -517,32 +518,37 @@ namespace scTracer::Importer::Pbrt {
                 }
                 case pbrtSceneBlock::BlockType::Shape: {
                     Core::Mesh* mesh = block.getMeshFromFile();
-                    meshes.push_back(*mesh);
+                    meshes.push_back(mesh);
                     instances.push_back(Core::Instance(glm::mat4(1.0f), currentMaterialIndex, meshes.size() - 1));
                     break;
                 }
-                case pbrtSceneBlock::BlockType::AttributeBegin:
+                case pbrtSceneBlock::BlockType::AttributeBegin: {
                     attribute_begin = true;
                     lights.push_back(block.getLight());
                     break;
-                case pbrtSceneBlock::BlockType::AttributeEnd:
+                }
+                case pbrtSceneBlock::BlockType::AttributeEnd: {
                     attribute_begin = false;
                     break;
-                default:
-                    break;
+                }
+                default: break;
                 }
             }
             assert(world_begin && "WorldBegin not found");
             assert(attribute_begin && "AttributeEnd not found");
-            Core::Scene scene(Core::Camera(camera_transform, camera_fov), Core::SceneSettings(resolution_x, resolution_y, max_bounce_depth));
-            scene.materials = materials;
-            for (auto& mesh : meshes)
-                scene.meshes.push_back(&mesh);
+            auto scene = new Core::Scene(Core::Camera(camera_transform, camera_fov), Core::SceneSettings(resolution_x, resolution_y, max_bounce_depth));
+            scene->materials = materials;
+            int meshCnter{ 0 };
+            for (auto& mesh : meshes) {
+                mesh->meshName = "inline_mesh_[" + std::to_string(meshCnter++) + "]";
+                scene->meshes.push_back(mesh);
+            }
             for (auto& instance : instances)
-                scene.instances.push_back(instance);
+                scene->instances.push_back(instance);
             for (auto& light : lights)
-                scene.lights.push_back(light);
-            scene.printDebugInfo();
+                scene->lights.push_back(light);
+            std::cerr << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
+            // scene->printDebugInfo();
             return scene;
         }
     };

@@ -1,41 +1,118 @@
 #pragma once
+#include <iostream>
 #include <bvh/bb.hpp>
+#include <config.hpp>
 
 namespace scTracer::BVH {
     class BvhStructure {
     public:
-        BvhStructure(float traversal_cost, int num_bins = 64, bool usesah = false)
-            : m_root(nullptr)
-            , m_num_bins(num_bins)
-            , m_usesah(usesah)
-            , m_height(0)
-            , m_traversal_cost(traversal_cost) {
+        struct Node;
+        enum NodeType
+        {
+            kInternal,
+            kLeaf
+        };
+
+        BvhStructure(float traversal_cost = 2.0f, int num_bins = 64, bool usesah = false)
+            : mRoot(nullptr)
+            , mSahBinsNum(num_bins)
+            , mUseSah(usesah)
+            , mHeight(0)
+            , mTraversalCost(traversal_cost) {
         }
         ~BvhStructure() = default;
 
-        //TODO: finish it
-        struct Node;
+        // Get
+        const BoundingBox& getWorldBounds() const;
+        inline int const* getIndices() const { return &mPackedIndices[0]; }
+        inline size_t getNumIndices() const { return mPackedIndices.size(); }
+        inline Node const* getRoot() const { return mRoot; }
+        inline int getHeight() const { return mHeight; }
 
 
+        // Print BVH statistics
+        virtual void printStatistics(std::ostream& os) const;
 
+        // Build
+        void build(const BoundingBox* bounds, int numbounds);
 
         // Bounding box which containing all primitives
-        BoundingBox m_bounds;
+        BoundingBox mTopBoundingBox;
         // Root node
-        Node* m_root;
+        Node* mRoot;
         // SAH flag
-        bool m_usesah;
+        bool mUseSah;
         // Tree height
-        int m_height;
+        int mHeight;
         // Node traversal cost
-        float m_traversal_cost;
+        float mTraversalCost;
         // Number of spatial bins to use for SAH
-        int m_num_bins;
+        int mSahBinsNum;
 
+        // Bvh nodes
+        std::vector<Node> mNodes;
+        // Identifiers of leaf primitives
+        std::vector<int> mIndices;
+        // Node allocator counter, atomic for thread safety
+        std::atomic<int> mNodeCount;
+        // Identifiers of leaf primitives
+        std::vector<int> mPackedIndices;
+    protected:
+        virtual void _build(const BoundingBox* bounds, int numbounds);
+        virtual Node* _allocateNode();
+        virtual void  _initNodeAllocator(size_t maxnum);
+
+        struct SplitRequest
+        {
+            // Starting index of a request
+            int startidx;
+            // Number of primitives
+            int numprims;
+            // Root node
+            Node** ptr;
+            // Bounding box
+            BoundingBox bounds;
+            // Centroid bounds
+            BoundingBox centroid_bounds;
+            // Level
+            int level;
+            // Node index
+            int index;
+        };
+
+        struct SahSplit
+        {
+            int dim;
+            float split;
+            float sah;
+            float overlap;
+        };
+
+        void _buildNode(const SplitRequest& req, const BoundingBox* bounds, const glm::vec3* centroids, int* primindices);
+        SahSplit _findSahSplit(const SplitRequest& req, const BoundingBox* bounds, const glm::vec3* centroids, int* primindices) const;
     private:
     };
 
     struct BvhStructure::Node
     {
+        BoundingBox bb; // world space bounding box
+        NodeType type;
+        Uint index;
+        union
+        {
+            // For internal nodes: left and right children
+            struct
+            {
+                Node* leftChild;
+                Node* rightChild;
+            };
+
+            // For leaves: starting primitive index and number of primitives
+            struct
+            {
+                int startIndex;
+                int primsNum;
+            };
+        };
     };
 }

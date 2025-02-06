@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+using Uint = unsigned int;
 namespace scTracer::Config {
     extern const int default_width;
     extern const int default_height;

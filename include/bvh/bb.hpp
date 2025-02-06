@@ -30,7 +30,7 @@ namespace scTracer::BVH {
 
         float surfaceArea() const;
 
-        glm::vec3 const& operator [] (int i) const { return *(&pmin + i); }
+        const glm::vec3& operator [] (int i) const { return *(&pmin + i); }
 
         // grow
         void grow(const glm::vec3& p);

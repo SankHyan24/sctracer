@@ -1,3 +1,5 @@
+aux_source_directory(./bvh _BVH_SRC_)
+target_sources(${_EXE_NAME_} PUBLIC ${_BVH_SRC_})
 aux_source_directory(./core _CORE_SRC_)
 target_sources(${_EXE_NAME_} PUBLIC ${_CORE_SRC_})
 aux_source_directory(./window _WINDOW_SRC_)

@@ -156,6 +156,7 @@ namespace scTracer::Window {
         void __loadScene() {
             assert(mSceneListPath.size() > 0);
             __loadScene(mSceneListPath[0]);
+
         }
 
         void __loadScene(std::string sceneName) {
@@ -167,7 +168,10 @@ namespace scTracer::Window {
                     break;
                 }
             std::cerr << "Loading scene [" << scenePbrtName << "]" << std::endl;
-            scTracer::Importer::Pbrt::pbrtParser pbrtScene(scenePbrtName);
+            mScene = scTracer::Importer::Pbrt::pbrtParser::parse(scenePbrtName);
+            mScene->processScene();
+
+
         }
 
         void __loadShaders() {

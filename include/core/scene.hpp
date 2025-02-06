@@ -1,5 +1,7 @@
 #pragma once
 #include <iostream>
+#include <string>
+
 #include <core/camera.hpp>
 #include <core/material.hpp>
 #include <core/mesh.hpp>
@@ -38,6 +40,9 @@ namespace scTracer::Core {
         }
         void processScene() {
             // TODO vertex n bvh
+            std::cerr << "Build BVH for Meshes ..." << std::endl;
+            createBLAS();
+            std::cerr << "Preprocessing Scene ..." << std::endl;
 
             // prepare vertex data
             int vertexCount = 0;
@@ -96,6 +101,17 @@ namespace scTracer::Core {
 
         // instances
         std::vector<Instance> instances;
+
+        void createBLAS()
+        {
+            // create Bottom Level Acceleration Structures(meshes BVH)
+#pragma omp parallel for
+            for (int i = 0; i < meshes.size(); i++)
+            {
+                std::cout << "Building BVH for " << meshes[i]->meshName << std::endl;
+                meshes[i]->BuildBVH();
+            }
+        }
     };
 
 }
