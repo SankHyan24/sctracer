@@ -44,7 +44,7 @@ namespace scTracer::Window {
             __initImGui();
 
             // z-buffer
-            glEnable(GL_DEPTH_TEST);
+            glDisable(GL_DEPTH_TEST);
             glDepthFunc(GL_LESS);
 
             // init renderer
@@ -62,7 +62,7 @@ namespace scTracer::Window {
             ImGui::StyleColorsDark();
             // Setup Platform/Renderer bindings
             ImGui_ImplGlfw_InitForOpenGL(mWindow, true);
-            ImGui_ImplOpenGL3_Init("#version 330");
+            ImGui_ImplOpenGL3_Init("#version 460");
         }
 
         void __run() {
@@ -71,12 +71,18 @@ namespace scTracer::Window {
                 glfwPollEvents();
                 ImGui_ImplOpenGL3_NewFrame();
                 ImGui_ImplGlfw_NewFrame();
-                // glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+                glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 ImGui::NewFrame();
                 __updateWindow();
+                mRenderer->render();
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                glViewport(0, 0, mRenderer->windowSize.x, mRenderer->windowSize.y);
+                mRenderer->show();
                 ImGui::Render();
+
+
 
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
                 glfwSwapBuffers(mWindow);
@@ -85,6 +91,13 @@ namespace scTracer::Window {
 
         void __updateWindow() {
             // update window
+            ImGui::SetNextWindowPos(ImVec2(20, 10), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(20, 40), ImGuiCond_FirstUseEver);
+
+            ImGui::Begin("FPS");
+            float fps = 1.0f / ImGui::GetIO().DeltaTime;
+            ImGui::Text("FPS: %.1f", fps);
+            ImGui::End();
         }
 
         std::unique_ptr<GLFWManager> mGLManager;

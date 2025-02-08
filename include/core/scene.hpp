@@ -15,6 +15,7 @@ namespace scTracer::Core {
         int image_width;
         int image_height;
         int maxBounceDepth;
+        int maxSamples{ -1 };
         SceneSettings(int image_width, int image_height, int maxBounceDepth) : image_width(image_width), image_height(image_height), maxBounceDepth(maxBounceDepth) {}
         void printDebugInfo();
     };

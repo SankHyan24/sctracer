@@ -18,6 +18,7 @@
 #include <window/quad.hpp>
 #include <importer/importer.hpp>
 #include <bvh/flattenbvh.hpp>
+#include <utils.hpp>
 
 
 namespace scTracer::Window {
@@ -164,6 +165,9 @@ namespace scTracer::Window {
         }
     };
 
+
+
+
     class RenderGPU {
     public:
         RenderGPU() {
@@ -177,21 +181,48 @@ namespace scTracer::Window {
             __initGPUDateBuffers();
             __initFBOs();
             __loadShaders();
+            mQuad = new Quad();
         }
-
         void render() {
-            // render
+            if (!mScene->isDirty() && mScene->settings.maxSamples != -1 && numOfSamples >= mScene->settings.maxSamples)
+                return;
+
+            glActiveTexture(GL_TEXTURE0);
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.pathTracerFBO);
+                glViewport(0, 0, windowSize.x, windowSize.y);
+                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulationTexture);
+                mQuad->draw(mRenderPipeline.PathTracer);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.accumulationFBO);
+                glViewport(0, 0, windowSize.x, windowSize.y);
+                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.pathTracerTexture);
+                mQuad->draw(mRenderPipeline.ImageMap);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.outputFBO);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.outputTexture[currentBuffer], 0);
+                glViewport(0, 0, windowSize.x, windowSize.y);
+                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulationTexture);
+                mQuad->draw(mRenderPipeline.ToneMap);
+            }
+        }
+        void show() {// to screen
+            glActiveTexture(GL_TEXTURE0);
+            {
+                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
+                mQuad->draw(mRenderPipeline.ImageMap);
+            }
         }
 
         // Scene
-
         Core::Scene* mScene{ nullptr };
         // Program
         RenderPipeline mRenderPipeline;
+
         // Context
         RenderFrameBuffers mRenderFrameBuffers;
         RenderFBOs mRenderFBOs;
-
+        Quad* mQuad{ nullptr };
         // Opengl buffer objects and textures for storing scene data on the GPU
         // FBOs
         // Render textures
