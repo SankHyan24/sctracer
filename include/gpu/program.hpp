@@ -10,17 +10,17 @@ namespace scTracer::GPU
     class Program
     { // GL program wrapper, with a Vertex and a Fragment shader
     public:
-        Program(const std::vector<Shader> shaders) {
+        Program(const std::vector<Shader*> shaders) {
             glID = glCreateProgram();
-            // std::cerr << "Linking program\n";
+            std::cerr << "Linking program\n";
             // attach all shaders
-            for (const Shader& shader : shaders)
-                glAttachShader(glID, shader.get());
+            for (const Shader* shader : shaders)
+                glAttachShader(glID, shader->get());
             glLinkProgram(glID);
 
             // detach all shaders
-            for (const Shader& shader : shaders)
-                glDetachShader(glID, shader.get());
+            for (const Shader* shader : shaders)
+                glDetachShader(glID, shader->get());
 
             GLint success = 0;
             glGetProgramiv(glID, GL_LINK_STATUS, &success);
@@ -37,6 +37,7 @@ namespace scTracer::GPU
                 reset();
                 exit(1);
             }
+
 
         }
         ~Program() {
