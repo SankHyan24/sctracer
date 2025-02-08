@@ -15,9 +15,13 @@
 #include <config.hpp>
 #include <core/scene.hpp>
 #include <gpu/program.hpp>
+#include <window/quad.hpp>
 #include <importer/importer.hpp>
+#include <bvh/flattenbvh.hpp>
+
 
 namespace scTracer::Window {
+    class Window;
 
     enum class ShaderType {
         PathTracer,
@@ -53,6 +57,15 @@ namespace scTracer::Window {
             delete ToneMap;
             load();
         }
+        void reinit() {
+            delete vertexShader;
+            delete debuggerShader;
+            delete pathTracerShader;
+            delete pathTracerLowResolutionShader;
+            delete imageMapShader;
+            delete toneMapShader;
+            init();
+        }
         ~RenderPipeline() {
             // delete shaders
             delete vertexShader;
@@ -69,24 +82,66 @@ namespace scTracer::Window {
             delete ToneMap;
         }
         // shaders
-        GPU::Shader* vertexShader;
-        GPU::Shader* debuggerShader;
-        GPU::Shader* pathTracerShader;
-        GPU::Shader* pathTracerLowResolutionShader;
-        GPU::Shader* imageMapShader;
-        GPU::Shader* toneMapShader;
+        GPU::Shader* vertexShader{ nullptr };
+        GPU::Shader* debuggerShader{ nullptr };
+        GPU::Shader* pathTracerShader{ nullptr };
+        GPU::Shader* pathTracerLowResolutionShader{ nullptr };
+        GPU::Shader* imageMapShader{ nullptr };
+        GPU::Shader* toneMapShader{ nullptr };
         // programs
-        GPU::Program* Debugger;
-        GPU::Program* PathTracer;
-        GPU::Program* PathTracerLowResolution;
-        GPU::Program* ImageMap;
-        GPU::Program* ToneMap;
+        GPU::Program* Debugger{ nullptr };
+        GPU::Program* PathTracer{ nullptr };
+        GPU::Program* PathTracerLowResolution{ nullptr };
+        GPU::Program* ImageMap{ nullptr };
+        GPU::Program* ToneMap{ nullptr };
     };
 
     struct RenderFrameBuffers {
+        // for bvhs
+        GLuint BVHBuffer;
+        GLuint BVHTex;
+        // for meshes
+        GLuint vertexIndicesBuffer;
+        GLuint vertexIndicesTex;
+        GLuint vertexBuffer;
+        GLuint vertexTex;
+        GLuint normalBuffer;
+        GLuint normalTex;
+        GLuint uvBuffer;
+        GLuint uvTex;
+        //
+        GLuint materialBuffer;
+        GLuint materialTex;
+        // instances
+        GLuint transformTex;
+        // for lights
+        GLuint lightTex;
+        // for textures
+        GLuint textureMapsArrayTex;
+        // for envmap
+        GLuint envMapTex;
+        GLuint envMapCDFTex;
+        void init() {
+
+        }
+
 
     };
 
+    struct RenderFBOs {
+        GLuint pathTracerFBO;
+        GLuint pathTracerTexture;
+        GLuint pathTracerLowResolutionFBO;
+        GLuint pathTracerLowResolutionTexture;
+
+        GLuint accumulationFBO;
+        GLuint accumulationTexture;
+
+        GLuint outputFBO;
+        GLuint outputTexture[2];
+
+        //
+    };
 
     class GLFWManager
     {
@@ -117,11 +172,11 @@ namespace scTracer::Window {
         }
         ~RenderGPU() = default;
         void init() {
-            mRenderPipeline.init();
             __loadSceneLists();
             __loadScene();
+            __initGPUDateBuffers();
+            __initFBOs();
             __loadShaders();
-
         }
 
         void render() {
@@ -134,6 +189,8 @@ namespace scTracer::Window {
         // Program
         RenderPipeline mRenderPipeline;
         // Context
+        RenderFrameBuffers mRenderFrameBuffers;
+        RenderFBOs mRenderFBOs;
 
         // Opengl buffer objects and textures for storing scene data on the GPU
         // FBOs
@@ -141,6 +198,13 @@ namespace scTracer::Window {
         // Render resolution and window resolution
         // Variables to track rendering status
     private:
+        // for rendering
+        float previewScale{ 0.25f };// which means 1/4 of the original resolution
+        int numOfSamples{ 1 }, frameCounter{ 1 };
+        int currentBuffer{ 0 }; // 0 or 1
+        // for window
+        glm::ivec2 windowSize{ Config::default_width, Config::default_height };
+        glm::ivec2 lowResSize{ windowSize.x * previewScale, windowSize.y * previewScale };
         std::string mScenesRootPath{ Config::sceneFolder };
         std::vector<std::string> mSceneListPath;
         void __loadSceneLists() { // load all scenes
@@ -176,19 +240,198 @@ namespace scTracer::Window {
             if (!mScene->isInitialized()) mScene->processScene();
         }
 
-        void __loadShaders() {
-            mRenderPipeline.load();
-        }
+        void __loadShaders() { // reload = load
+            mRenderPipeline.reinit();
+            mRenderPipeline.reload();
 
+            // Setup shader uniforms
+            mRenderPipeline.PathTracer->Use();
+            GLuint thisProgram = mRenderPipeline.PathTracer->get();
+
+            // env map uniform here(not implemented yet)
+
+            glUniform1i(glGetUniformLocation(thisProgram, "topBVHIndex"), mScene->bvhFlattor.topLevelIndex);
+            glUniform2f(glGetUniformLocation(thisProgram, "resolution"), float(windowSize.x), float(windowSize.y));
+            glUniform1i(glGetUniformLocation(thisProgram, "numOfLights"), mScene->lights.size());
+            glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
+            glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
+            glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
+            glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
+            glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
+            glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
+            glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
+            glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
+            glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
+            glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
+            mRenderPipeline.PathTracer->StopUsing();
+
+            mRenderPipeline.PathTracerLowResolution->Use();
+            thisProgram = mRenderPipeline.PathTracerLowResolution->get();
+            glUniform1i(glGetUniformLocation(thisProgram, "topBVHIndex"), mScene->bvhFlattor.topLevelIndex);
+            glUniform2f(glGetUniformLocation(thisProgram, "resolution"), float(lowResSize.x), float(lowResSize.y));
+            glUniform1i(glGetUniformLocation(thisProgram, "numOfLights"), mScene->lights.size());
+            glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
+            glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
+            glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
+            glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
+            glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
+            glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
+            glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
+            glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
+            glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
+            glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
+            mRenderPipeline.PathTracerLowResolution->StopUsing();
+        }
 
         void __initGPUDateBuffers() {
+            std::cerr << Config::LOG_MAGENTA << "Init GPU Buffers" << Config::LOG_RESET;
+
             glPixelStorei(GL_PACK_ALIGNMENT, 1);
-            // BVHs
+            // Create buffer and texture for BVH
+            glGenBuffers(1, &mRenderFrameBuffers.BVHBuffer);
+            glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHBuffer);
+            glBufferData(GL_TEXTURE_BUFFER, sizeof(BVH::BVHFlattor::flattenedNodes) * mScene->bvhFlattor.flattenedNodes.size(), &mScene->bvhFlattor.flattenedNodes[0], GL_STATIC_DRAW);
+            glGenTextures(1, &mRenderFrameBuffers.BVHTex);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHTex);
+            glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, mRenderFrameBuffers.BVHBuffer);
             // Create buffer and texture for vertex indices
-            // TODO fix this
+            glGenBuffers(1, &mRenderFrameBuffers.vertexIndicesBuffer);
+            glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.vertexIndicesBuffer);
+            glBufferData(GL_TEXTURE_BUFFER, sizeof(int) * mScene->sceneTriIndices.size(), &mScene->sceneTriIndices[0], GL_STATIC_DRAW);
+            glGenTextures(1, &mRenderFrameBuffers.vertexIndicesTex);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.vertexIndicesTex);
+            glTexBuffer(GL_TEXTURE_BUFFER, GL_R32I, mRenderFrameBuffers.vertexIndicesBuffer);
+            // Create buffer and texture for vertices
+            glGenBuffers(1, &mRenderFrameBuffers.vertexBuffer);
+            glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.vertexBuffer);
+            glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3) * mScene->sceneVertices.size(), &mScene->sceneVertices[0], GL_STATIC_DRAW);
+            glGenTextures(1, &mRenderFrameBuffers.vertexTex);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.vertexTex);
+            glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, mRenderFrameBuffers.vertexBuffer);
+            // Create buffer and texture for normals
+            glGenBuffers(1, &mRenderFrameBuffers.normalBuffer);
+            glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.normalBuffer);
+            glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3) * mScene->sceneNormals.size(), &mScene->sceneNormals[0], GL_STATIC_DRAW);
+            glGenTextures(1, &mRenderFrameBuffers.normalTex);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.normalTex);
+            glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, mRenderFrameBuffers.normalBuffer);
+            // Create buffer and texture for uvs
+            glGenBuffers(1, &mRenderFrameBuffers.uvBuffer);
+            glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.uvBuffer);
+            glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec2) * mScene->sceneMeshUvs.size(), &mScene->sceneMeshUvs[0], GL_STATIC_DRAW);
+            glGenTextures(1, &mRenderFrameBuffers.uvTex);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.uvTex);
+            glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, mRenderFrameBuffers.uvBuffer);
+            // Create buffer and texture for materials
+            glGenTextures(1, &mRenderFrameBuffers.materialTex);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.materialTex);
+            glTexImage2D(GL_TEXTURE_BUFFER, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materials.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materials[0]);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            // Create buffer and texture for transforms
+            glGenTextures(1, &mRenderFrameBuffers.transformTex);
+            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformTex);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(glm::mat4) / sizeof(float) / 4 * mScene->transforms.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->transforms[0]);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glBindTexture(GL_TEXTURE_2D, 0);
 
+            // Create texture for lights
+            if (mScene->lights.size() > 0) {
+                glGenTextures(1, &mRenderFrameBuffers.lightTex);
+                glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightTex);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, sizeof(Core::Light) / sizeof(float) / 3 * mScene->lights.size(), 1, 0, GL_RGB, GL_FLOAT, &mScene->lights[0]);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glBindTexture(GL_TEXTURE_2D, 0);
+            }
 
+            // Create texture for scene textures
+            // envmap
+            // TODO
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHTex);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.vertexIndicesTex);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.vertexTex);
+            glActiveTexture(GL_TEXTURE4);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.normalTex);
+            glActiveTexture(GL_TEXTURE5);
+            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.uvTex);
+            glActiveTexture(GL_TEXTURE6);
+            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.materialTex);
+            glActiveTexture(GL_TEXTURE7);
+            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformTex);
+            glActiveTexture(GL_TEXTURE8);
+            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightTex);
+            // glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
+            // glActiveTexture(GL_TEXTURE9);
+            // glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapTex);
+            // glActiveTexture(GL_TEXTURE10);
+            // glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapCDFTex);
+            std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
         }
+
+        void __initFBOs() {
+            std::cerr << Config::LOG_MAGENTA << "Init FBOs" << Config::LOG_RESET;
+            numOfSamples = 1;
+            frameCounter = 1;
+            currentBuffer = 0;
+            windowSize = glm::ivec2(windowSize.x, windowSize.y);
+            lowResSize = glm::ivec2(windowSize.x * previewScale, windowSize.y * previewScale);
+
+            glGenFramebuffers(1, &mRenderFBOs.pathTracerFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.pathTracerFBO);
+            glGenTextures(1, &mRenderFBOs.pathTracerTexture);
+            glBindTexture(GL_TEXTURE_2D, mRenderFBOs.pathTracerTexture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowSize.x, windowSize.y, 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.pathTracerTexture, 0);
+
+            glGenFramebuffers(1, &mRenderFBOs.pathTracerLowResolutionFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.pathTracerLowResolutionFBO);
+            glGenTextures(1, &mRenderFBOs.pathTracerLowResolutionTexture);
+            glBindTexture(GL_TEXTURE_2D, mRenderFBOs.pathTracerLowResolutionTexture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, lowResSize.x, lowResSize.y, 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.pathTracerLowResolutionTexture, 0);
+
+            glGenFramebuffers(1, &mRenderFBOs.accumulationFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.accumulationFBO);
+            glGenTextures(1, &mRenderFBOs.accumulationTexture);
+            glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulationTexture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowSize.x, windowSize.y, 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.accumulationTexture, 0);
+
+            glGenFramebuffers(1, &mRenderFBOs.outputFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.outputFBO);
+            for (int i = 0; i < 2; i++) {
+                glGenTextures(1, &mRenderFBOs.outputTexture[i]);
+                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[i]);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowSize.x, windowSize.y, 0, GL_RGBA, GL_FLOAT, NULL);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glBindTexture(GL_TEXTURE_2D, 0);
+            }
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.outputTexture[currentBuffer], 0);
+
+            std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
+        }
+
+
+
+        friend class Window;
     };
 
 

@@ -41,11 +41,13 @@ namespace scTracer::Core {
         // scene settings
         Camera camera;
         SceneSettings settings;
+        BVH::BVHFlattor bvhFlattor;
 
         // assets
         std::vector<Material> materials;
         std::vector<Mesh*> meshes; // pointers to mesh because mesh is a heavy object
         std::vector<Light> lights;
+
         // meshes data
         std::vector<glm::vec3> sceneVertices;
         std::vector<glm::vec3> sceneNormals;
@@ -62,7 +64,6 @@ namespace scTracer::Core {
         // for bvh
         BVH::BoundingBox sceneBounds;
         BVH::BvhStructure* sceneBVH;
-        BVH::BVHFlattor bvhFlattor;
         void __createBLAS();// create Bottom Level Acceleration Structures(meshes BVH)
         void __createTLAS();// create Top Level Acceleration Structures(instances BVH)
     };

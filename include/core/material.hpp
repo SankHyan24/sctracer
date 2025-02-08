@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <utils/mathUtils.hpp>
+#include <core/texture.hpp>
 #include <glm/glm.hpp>
 
 namespace scTracer::Core {
