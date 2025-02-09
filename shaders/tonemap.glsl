@@ -1,10 +1,25 @@
 #version 450 core
 
-in vec3 ourColor;
-in vec2 TexCoords;             
-out vec4 FragColor;
+out vec4 outCol;
+in vec2 TexCoords;
+
+uniform sampler2D pathTraceTexture;
+uniform float invSampleCounter;
+
+#include "include/globals.glsl"
+
+vec3 Tonemap(in vec3 c, float limit)
+{
+    return c * 1.0 / (1.0 + Luminance(c) / limit);
+}
 
 void main() {
-    float fragDepth = gl_FragCoord.z;
-    FragColor = vec4(ourColor, 1.0); 
+    vec4 col = texture(pathTraceTexture, TexCoords) * invSampleCounter;
+    vec3 color = col.rgb;
+    float alpha = col.a;
+
+    color = Tonemap(color, 1.5);
+    color = pow(color, vec3(1.0 / 2.2));
+    outCol = vec4(color, 1.0);
+
 }

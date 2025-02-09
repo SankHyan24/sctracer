@@ -71,6 +71,8 @@ namespace scTracer::Window {
                 glfwPollEvents();
                 ImGui_ImplOpenGL3_NewFrame();
                 ImGui_ImplGlfw_NewFrame();
+
+                mRenderer->update();
                 glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -97,6 +99,8 @@ namespace scTracer::Window {
             ImGui::Begin("FPS");
             float fps = 1.0f / ImGui::GetIO().DeltaTime;
             ImGui::Text("FPS: %.1f", fps);
+            ImGui::Text("Samples: %d", mRenderer->numOfSamples);
+            ImGui::Text("is dirty: %d", mRenderer->mScene->isDirty());
             ImGui::End();
         }
 

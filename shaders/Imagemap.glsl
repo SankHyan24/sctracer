@@ -1,10 +1,11 @@
-#version 450 core
+#version 330
 
-in vec3 ourColor;
-in vec2 TexCoords;             
-out vec4 FragColor;
+out vec4 color;
+in vec2 TexCoords;
 
-void main() {
-    float fragDepth = gl_FragCoord.z;
-    FragColor = vec4(ourColor, 1.0); 
+uniform sampler2D imgTex;
+
+void main()
+{
+    color = texture(imgTex, TexCoords);
 }

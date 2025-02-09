@@ -35,8 +35,10 @@ namespace scTracer::Core {
         bool isDirty() const { return dirty; }
         bool isInitialized() const { return initialized; }
 
-    private:
         bool dirty{ true };
+        bool instancesDirty{ true };
+        bool envMapDirty{ true };
+
         bool initialized{ false };
     public:
         // scene settings
@@ -45,7 +47,8 @@ namespace scTracer::Core {
         BVH::BVHFlattor bvhFlattor;
 
         // assets
-        std::vector<Material> materials;
+        std::vector<MaterialRaw> materials;
+        std::vector<Material> materialDatas;
         std::vector<Mesh*> meshes; // pointers to mesh because mesh is a heavy object
         std::vector<Light> lights;
 

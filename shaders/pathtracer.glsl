@@ -1,10 +1,11 @@
-#version 450 core
+#include "include/uniforms.glsl"
+#include "include/globals.glsl"
 
-in vec3 ourColor;
-in vec2 TexCoords;             
-out vec4 FragColor;
+out vec4 color;
+in vec2 TexCoords;
 
 void main() {
     float fragDepth = gl_FragCoord.z;
-    FragColor = vec4(ourColor, 1.0); 
+    vec4 accumColor = texture(accumTexture, TexCoords);
+    color = vec4(1,0.1,0.3, 1.0)+accumColor; 
 }

@@ -28,6 +28,13 @@ namespace scTracer::Core {
     }
 
     void Scene::processScene() {
+        std::cerr << "Generating Material Data ...";
+        for (int i = 0;i < materials.size();i++) {
+            Material material = materials[i].getMaterial();
+            materialDatas.push_back(material);
+        }
+        std::cerr << "Done!" << std::endl;
+
         std::cerr << "Building BVH for Meshes ...";
         __createBLAS();
         std::cerr << "Done!" << std::endl;

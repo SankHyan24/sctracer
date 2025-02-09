@@ -182,6 +182,7 @@ namespace scTracer::Window {
             __initFBOs();
             __loadShaders();
             mQuad = new Quad();
+            Utils::glUtils::checkError("RenderGPU::init");
         }
         void render() {
             if (!mScene->isDirty() && mScene->settings.maxSamples != -1 && numOfSamples >= mScene->settings.maxSamples)
@@ -205,10 +206,8 @@ namespace scTracer::Window {
                 glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulationTexture);
                 mQuad->draw(mRenderPipeline.ToneMap);
             }
-            // GLenum err = glGetError();
-            // if (err != GL_NO_ERROR) {
-            //     std::cerr << "Error: " << err << std::endl;
-            // }
+
+            Utils::glUtils::checkError("RenderGPU::render");
 
         }
         void show() {// to screen
@@ -217,8 +216,76 @@ namespace scTracer::Window {
                 glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
                 mQuad->draw(mRenderPipeline.ImageMap);
             }
+            Utils::glUtils::checkError("RenderGPU::show");
         }
+        void RenderGPU::update()
+        {
+            if (!mScene->isDirty() && mScene->settings.maxSamples != -1 && numOfSamples >= mScene->settings.maxSamples)
+                return;
+            if (mScene->instancesDirty) {
+                mScene->instancesDirty = false;
+                // Update transforms
+                glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformTex);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(glm::mat4) / sizeof(float) / 4 * mScene->transforms.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->transforms[0]);
 
+                glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.materialTex);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materials.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materialDatas[0]);
+
+                int index = mScene->bvhFlattor.topLevelIndex;
+                int offset = sizeof(BVH::BVHFlattor::flattenedNodes) * index;
+                int size = sizeof(BVH::BVHFlattor::flattenedNodes) * (mScene->bvhFlattor.flattenedNodes.size() - index);
+                glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHBuffer);
+                Utils::glUtils::checkError("starter");
+                glBufferSubData(GL_TEXTURE_BUFFER, offset, size, &mScene->bvhFlattor.flattenedNodes[index]);
+                Utils::glUtils::checkError("ender");
+            }
+
+            if (mScene->envMapDirty) {
+                mScene->envMapDirty = false;
+                // Update envmap
+                // TODO
+            }
+
+            if (mScene->isDirty())
+            {
+                numOfSamples = 1; // reset samples
+                frameCounter = 1;
+                mScene->dirty = false;
+                // clear accumulation buffer
+                glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.accumulationFBO);
+                glClear(GL_COLOR_BUFFER_BIT);
+            }
+            else {
+                frameCounter++;
+                numOfSamples++;
+                currentBuffer = 1 - currentBuffer;
+            }
+
+            // Update uniforms
+            mRenderPipeline.PathTracer->Use();
+            auto thisProgram = mRenderPipeline.PathTracer->get();
+            glUniform3f(glGetUniformLocation(thisProgram, "camera.position"), mScene->camera.mPosition.x, mScene->camera.mPosition.y, mScene->camera.mPosition.z);
+            glUniform3f(glGetUniformLocation(thisProgram, "camera.right"), mScene->camera.mRight.x, mScene->camera.mRight.y, mScene->camera.mRight.z);
+            glUniform3f(glGetUniformLocation(thisProgram, "camera.up"), mScene->camera.mUp.x, mScene->camera.mUp.y, mScene->camera.mUp.z);
+            glUniform3f(glGetUniformLocation(thisProgram, "camera.front"), mScene->camera.mFront.x, mScene->camera.mFront.y, mScene->camera.mFront.z);
+            glUniform1f(glGetUniformLocation(thisProgram, "camera.fov"), mScene->camera.mFov);
+            glUniform1f(glGetUniformLocation(thisProgram, "camera.focalDist"), mScene->camera.mFocalDist);
+            glUniform1f(glGetUniformLocation(thisProgram, "camera.aperture"), mScene->camera.mAperture);
+            glUniform1i(glGetUniformLocation(thisProgram, "maxDepth"), mScene->settings.maxBounceDepth);
+            glUniform1i(glGetUniformLocation(thisProgram, "frameNum"), frameCounter);
+            mRenderPipeline.PathTracer->StopUsing();
+
+            mRenderPipeline.PathTracerLowResolution->Use();
+            thisProgram = mRenderPipeline.PathTracerLowResolution->get();
+            mRenderPipeline.PathTracerLowResolution->StopUsing();
+
+            mRenderPipeline.ToneMap->Use();
+            thisProgram = mRenderPipeline.ToneMap->get();
+            glUniform1f(glGetUniformLocation(thisProgram, "invSampleCounter"), 1.0f / (numOfSamples));
+            mRenderPipeline.ToneMap->StopUsing();
+
+            Utils::glUtils::checkError("RenderGPU::update");
+        }
         // Scene
         Core::Scene* mScene{ nullptr };
         // Program
@@ -256,12 +323,10 @@ namespace scTracer::Window {
                         mSceneListPath.push_back(entry.path().string().substr(mScenesRootPath.size()));
                 }
         }
-
         void __loadScene() {
             assert(mSceneListPath.size() > 0);
             __loadScene(mSceneListPath[0]);
         }
-
         void __loadScene(std::string sceneName) {
             // load and process scene
             std::string sceneFullPath = mScenesRootPath + sceneName;
@@ -275,7 +340,6 @@ namespace scTracer::Window {
             mScene = scTracer::Importer::Pbrt::pbrtParser::parse(scenePbrtName);
             if (!mScene->isInitialized()) mScene->processScene();
         }
-
         void __loadShaders() { // reload = load
             mRenderPipeline.reinit();
             mRenderPipeline.reload();
@@ -318,7 +382,6 @@ namespace scTracer::Window {
             glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
             mRenderPipeline.PathTracerLowResolution->StopUsing();
         }
-
         void __initGPUDateBuffers() {
             std::cerr << Config::LOG_MAGENTA << "Init GPU Buffers" << Config::LOG_RESET;
 
@@ -360,9 +423,8 @@ namespace scTracer::Window {
             glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, mRenderFrameBuffers.uvBuffer);
             // Create buffer and texture for materials
             glGenTextures(1, &mRenderFrameBuffers.materialTex);
-            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.materialTex);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materials.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materials[0]);
-
+            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.materialTex);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materials.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materialDatas[0]);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glBindTexture(GL_TEXTURE_2D, 0);
@@ -373,7 +435,6 @@ namespace scTracer::Window {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glBindTexture(GL_TEXTURE_2D, 0);
-
             // Create texture for lights
             if (mScene->lights.size() > 0) {
                 glGenTextures(1, &mRenderFrameBuffers.lightTex);
@@ -396,13 +457,14 @@ namespace scTracer::Window {
             glActiveTexture(GL_TEXTURE4);
             glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.normalTex);
             glActiveTexture(GL_TEXTURE5);
-            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.uvTex);
+            glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.uvTex);
             glActiveTexture(GL_TEXTURE6);
             glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.materialTex);
             glActiveTexture(GL_TEXTURE7);
             glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformTex);
             glActiveTexture(GL_TEXTURE8);
             glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightTex);
+
             // glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
             // glActiveTexture(GL_TEXTURE9);
             // glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapTex);
@@ -410,7 +472,6 @@ namespace scTracer::Window {
             // glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapCDFTex);
             std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
         }
-
         void __initFBOs() {
             std::cerr << Config::LOG_MAGENTA << "Init FBOs" << Config::LOG_RESET;
             numOfSamples = 1;
@@ -465,9 +526,6 @@ namespace scTracer::Window {
 
             std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
         }
-
-
-
         friend class Window;
     };
 

@@ -137,7 +137,7 @@ namespace scTracer::Importer::Pbrt {
             return resolution;
         }
 
-        Core::Material getMaterial() {
+        Core::MaterialRaw getMaterial() {
             assert(mBType == BlockType::MakeNamedMaterial);
             std::string materialName = mContent[0];
             materialName = materialName.substr(materialName.find("\"") + 1, materialName.find("\"", materialName.find("\"") + 1) - materialName.find("\"") - 1);
@@ -161,7 +161,7 @@ namespace scTracer::Importer::Pbrt {
                             value += reflectanceString[i];
                 }
             }
-            Core::Material material;
+            Core::MaterialRaw material;
             material.name = materialName;
             material.basecolor = glm::vec3(reflectance[0], reflectance[1], reflectance[2]);
             material.mType = Core::getMaterialType(materialType);
@@ -492,7 +492,7 @@ namespace scTracer::Importer::Pbrt {
                 }
             }
             // world begin
-            std::vector<Core::Material> materials;
+            std::vector<Core::MaterialRaw> materials;
             std::vector<Core::Mesh*> meshes;
             std::vector<Core::Instance> instances;
             std::vector<Core::Light> lights;
@@ -513,7 +513,7 @@ namespace scTracer::Importer::Pbrt {
                             currentMaterialIndex = i;
                             break;
                         }
-                    assert(currentMaterialIndex != -1 && "Material not found");
+                    assert(currentMaterialIndex != -1 && "MaterialRaw not found");
                     break;
                 }
                 case pbrtSceneBlock::BlockType::Shape: {
