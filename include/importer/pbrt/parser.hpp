@@ -75,7 +75,7 @@ namespace scTracer::Importer::Pbrt {
             if (firstLine.find("AttributeEnd") != std::string::npos) {
                 return BlockType::AttributeEnd;
             }
-            return BlockType::Camera;
+            return BlockType::Unsupported;
         }
         std::vector<std::string> mContent;
     public:
@@ -102,7 +102,7 @@ namespace scTracer::Importer::Pbrt {
         float getCameraFOV() {
             assert(mBType == BlockType::Camera);
             std::string cameraString = mContent[1];
-            assert(cameraString.find("fov") == std::string::npos);
+            assert(cameraString.find("fov") != std::string::npos);
             cameraString = cameraString.substr(cameraString.find("[") + 1, cameraString.find("]") - cameraString.find("[") - 1);
             return std::stof(cameraString);
         }
@@ -459,7 +459,7 @@ namespace scTracer::Importer::Pbrt {
             bool world_begin{ false };
             // SCENE SETTINGS
             glm::mat4 camera_transform;
-            float camera_fov{ 45.0f };
+            float camera_fov{ 19.5 };
             int max_bounce_depth{ 1024 };
             int resolution_x{ 800 };
             int resolution_y{ 600 };
@@ -469,6 +469,9 @@ namespace scTracer::Importer::Pbrt {
                 if (world_begin)
                     break;
                 switch (block.mBType) {
+                case pbrtSceneBlock::BlockType::Camera:
+                    camera_fov = block.getCameraFOV();
+                    break;
                 case pbrtSceneBlock::BlockType::Transform:
                     camera_transform = block.getTransform();
                     break;
@@ -486,7 +489,7 @@ namespace scTracer::Importer::Pbrt {
                     world_begin = true;
                     break;
                 case pbrtSceneBlock::BlockType::Unsupported:
-                    assert(false && "Unsupported block type");
+                    // assert(false && "Unsupported block type");
                 default:
                     break;
                 }
