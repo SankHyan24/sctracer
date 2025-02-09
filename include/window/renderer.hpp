@@ -178,8 +178,8 @@ namespace scTracer::Window {
         void init() {
             __loadSceneLists();
             __loadScene();
-            // __initGPUDateBuffers();
-            // __initFBOs();
+            __initGPUDateBuffers();
+            __initFBOs();
             __loadShaders();
             mQuad = new Quad();
         }
@@ -205,6 +205,11 @@ namespace scTracer::Window {
                 glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulationTexture);
                 mQuad->draw(mRenderPipeline.ToneMap);
             }
+            // GLenum err = glGetError();
+            // if (err != GL_NO_ERROR) {
+            //     std::cerr << "Error: " << err << std::endl;
+            // }
+
         }
         void show() {// to screen
             glActiveTexture(GL_TEXTURE0);
@@ -356,11 +361,7 @@ namespace scTracer::Window {
             // Create buffer and texture for materials
             glGenTextures(1, &mRenderFrameBuffers.materialTex);
             glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.materialTex);
-
-
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////
-            glTexImage2D(GL_TEXTURE_BUFFER, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materials.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materials[0]);
-            ////////////////////////////////////////////////////////////////////////////////////////////////////////
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materials.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materials[0]);
 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
