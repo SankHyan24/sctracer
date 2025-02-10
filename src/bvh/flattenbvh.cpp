@@ -2,44 +2,47 @@
 
 namespace scTracer::BVH {
     int BVHFlattor::_flattenBLASNode(const BVH::BvhStructure::Node* node) {
+        // node->print(std::cerr);
         int index = currentNodeIndex;
         BoundingBox bounds = node->bb;
         flattenedNodes[index].boundsmin = bounds.pmin;
         flattenedNodes[index].boundsmax = bounds.pmax;
-        flattenedNodes[index].isLeaf = 0;
+        // flattenedNodes[index].isLeaf = 0;
+        flattenedNodes[index].LeftRightLeaf.z = 0;
         if (node->type == BVH::BvhStructure::NodeType::kLeaf) {
-            flattenedNodes[index].isLeaf = 1;
-            flattenedNodes[index].lcIndex = currentTriIndex + node->startIndex;
-            flattenedNodes[index].rcIndex = node->primsNum;
+            flattenedNodes[index].LeftRightLeaf.z = 1;
+            flattenedNodes[index].LeftRightLeaf.x = currentTriIndex + node->startIndex;
+            flattenedNodes[index].LeftRightLeaf.y = node->primsNum;
         }
         else {
             currentNodeIndex++;
-            flattenedNodes[index].lcIndex = _flattenBLASNode(node->leftChild);
+            flattenedNodes[index].LeftRightLeaf.x = _flattenBLASNode(node->leftChild);
             currentNodeIndex++;
-            flattenedNodes[index].rcIndex = _flattenBLASNode(node->rightChild);
+            flattenedNodes[index].LeftRightLeaf.y = _flattenBLASNode(node->rightChild);
         }
         return index;
     }
 
     int BVHFlattor::_flattenTLASNode(const BVH::BvhStructure::Node* node) {
+        // node->print(std::cerr);
         int index = currentNodeIndex;
         BoundingBox bounds = node->bb;
         flattenedNodes[index].boundsmin = bounds.pmin;
         flattenedNodes[index].boundsmax = bounds.pmax;
-        flattenedNodes[index].isLeaf = 0;
+        flattenedNodes[index].LeftRightLeaf.z = 0;
         if (node->type == BVH::BvhStructure::NodeType::kLeaf) {
             int instanceIndex = topLevelBvh->mPackedIndices[node->startIndex];
             int meshIndex = instances[instanceIndex].mMeshIndex;
             int materialIndex = instances[instanceIndex].mMaterialIndex;
-            flattenedNodes[index].meshBVHindex = bvhRootStartIndices[meshIndex];
-            flattenedNodes[index].materialIndex = materialIndex;
-            flattenedNodes[index].instanceIndex = -instanceIndex - 1;// avoid 0 n 1
+            flattenedNodes[index].LeftRightLeaf.x = bvhRootStartIndices[meshIndex];
+            flattenedNodes[index].LeftRightLeaf.y = materialIndex;
+            flattenedNodes[index].LeftRightLeaf.z = -instanceIndex - 1;// avoid 0 n 1
         }
         else {
             currentNodeIndex++;
-            flattenedNodes[index].lcIndex = _flattenTLASNode(node->leftChild);
+            flattenedNodes[index].LeftRightLeaf.x = _flattenTLASNode(node->leftChild);
             currentNodeIndex++;
-            flattenedNodes[index].rcIndex = _flattenTLASNode(node->rightChild);
+            flattenedNodes[index].LeftRightLeaf.y = _flattenTLASNode(node->rightChild);
         }
         return index;
     }
@@ -83,5 +86,12 @@ namespace scTracer::BVH {
         this->instances = instances;
         _flattenBLAS();
         _flattenTLAS();
+    }
+
+    void printFlatNode(const BVHFlattor::FlatNode& node, std::ostream& os) {
+        os << "FlatNode: " << std::endl;
+        os << "Bounds min: " << node.boundsmin.x << " " << node.boundsmin.y << " " << node.boundsmin.z << std::endl;
+        os << "Bounds max: " << node.boundsmax.x << " " << node.boundsmax.y << " " << node.boundsmax.z << std::endl;
+        os << "LeftRightLeaf: " << node.LeftRightLeaf.x << " " << node.LeftRightLeaf.y << " " << node.LeftRightLeaf.z << std::endl;
     }
 }

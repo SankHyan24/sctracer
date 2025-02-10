@@ -114,5 +114,24 @@ namespace scTracer::BVH {
                 int primsNum;
             };
         };
+        void print(std::ostream& os) const {
+            os << "Node: " << index << " ";
+            os << "Type: " << (type == kInternal ? "Internal" : "Leaf") << " ";
+            switch (type)
+            {
+            case kInternal:
+                os << "Left: " << leftChild->index << " ";
+                os << "Right: " << rightChild->index << " ";
+                break;
+            case kLeaf:
+                os << "Start: " << startIndex << " ";
+                os << "Num: " << primsNum << " ";
+                break;
+            default:
+                break;
+            }
+            os << std::endl;
+
+        }
     };
 }

@@ -8,16 +8,9 @@ namespace scTracer::BVH {
     class   BVHFlattor {
     public:
         struct FlatNode {
-            glm::vec3 boundsmin, boundsmax;
-            union {
-                struct {
-                    int lcIndex, rcIndex, isLeaf;
-                };
-                struct {
-                    int meshBVHindex, materialIndex, instanceIndex;
-                };
-
-            };
+            glm::vec3 boundsmin;
+            glm::vec3  boundsmax;
+            glm::vec3 LeftRightLeaf;
         };
 
 
@@ -44,4 +37,6 @@ namespace scTracer::BVH {
         std::vector<Core::Mesh*> meshes;
         std::vector<Core::Instance> instances;
     };
+
+    void printFlatNode(const BVHFlattor::FlatNode& node, std::ostream& os);
 }

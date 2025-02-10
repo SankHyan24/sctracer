@@ -1,8 +1,7 @@
-#version 330
+#version 460
 
 out vec4 color;
 in vec2 TexCoords;
-
 uniform sampler2D imgTex;
 
 void main()

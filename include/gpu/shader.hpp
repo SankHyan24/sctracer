@@ -81,7 +81,7 @@ namespace scTracer::GPU {
             return glID;
         }
         Shader(const shaderRaw& raw, GLuint type) {
-            std::cout << "Compiling shader: " << raw.path << " ......";
+            // std::cout << "Compiling shader: " << raw.path << " ......";
             glID = glCreateShader(type);
             const GLchar* src = (const GLchar*)raw.code.c_str();
             glShaderSource(glID, 1, &src, 0);
@@ -102,7 +102,7 @@ namespace scTracer::GPU {
                 reset();
                 exit(1);
             }
-            std::cout << Config::LOG_GREEN << " Success!" << Config::LOG_RESET << std::endl;
+            // std::cout << Config::LOG_GREEN << " Success!" << Config::LOG_RESET << std::endl;
         }
         ~Shader() {
             reset();

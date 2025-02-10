@@ -46,6 +46,22 @@ namespace scTracer::Core {
             std::cout << "FOV: " << mFov << std::endl;
         }
 
+        void rotateByZero() {
+            // mFront rotate by axis y, theta is 10 degree
+            float x = mFront.x;
+            float z = mFront.z;
+            mFront.x = x * cos(Utils::mathUtils::degrees2radians(10)) + z * sin(Utils::mathUtils::degrees2radians(10));
+            mFront.z = -x * sin(Utils::mathUtils::degrees2radians(10)) + z * cos(Utils::mathUtils::degrees2radians(10));
+
+
+            float mpx = mPosition.x;
+            float mpz = mPosition.z;
+
+            mPosition.x = mpx * cos(Utils::mathUtils::degrees2radians(0.1)) + mpz * sin(Utils::mathUtils::degrees2radians(0.1));
+            mPosition.z = -mpx * sin(Utils::mathUtils::degrees2radians(0.1)) + mpz * cos(Utils::mathUtils::degrees2radians(0.1));
+
+            // updateCameraVectors();
+        }
         glm::vec3 mPosition;
         glm::vec3 mFront;
         glm::vec3 mUp;

@@ -231,13 +231,11 @@ namespace scTracer::Window {
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.materialTex);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materials.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materialDatas[0]);
 
-                int index = mScene->bvhFlattor.topLevelIndex;
-                int offset = sizeof(BVH::BVHFlattor::flattenedNodes) * index;
-                int size = sizeof(BVH::BVHFlattor::flattenedNodes) * (mScene->bvhFlattor.flattenedNodes.size() - index);
-                glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHBuffer);
-                Utils::glUtils::checkError("starter");
-                glBufferSubData(GL_TEXTURE_BUFFER, offset, size, &mScene->bvhFlattor.flattenedNodes[index]);
-                Utils::glUtils::checkError("ender");
+                // int index = mScene->bvhFlattor.topLevelIndex;
+                // int offset = sizeof(BVH::BVHFlattor::flattenedNodes) * index;
+                // int size = sizeof(BVH::BVHFlattor::flattenedNodes) * (mScene->bvhFlattor.flattenedNodes.size() - index);
+                // glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHBuffer);
+                // glBufferSubData(GL_TEXTURE_BUFFER, offset, size, &mScene->bvhFlattor.flattenedNodes[index]);
             }
 
             if (mScene->envMapDirty) {
@@ -264,6 +262,7 @@ namespace scTracer::Window {
             // Update uniforms
             mRenderPipeline.PathTracer->Use();
             auto thisProgram = mRenderPipeline.PathTracer->get();
+            mScene->camera.rotateByZero();
             glUniform3f(glGetUniformLocation(thisProgram, "camera.position"), mScene->camera.mPosition.x, mScene->camera.mPosition.y, mScene->camera.mPosition.z);
             glUniform3f(glGetUniformLocation(thisProgram, "camera.right"), mScene->camera.mRight.x, mScene->camera.mRight.y, mScene->camera.mRight.z);
             glUniform3f(glGetUniformLocation(thisProgram, "camera.up"), mScene->camera.mUp.x, mScene->camera.mUp.y, mScene->camera.mUp.z);

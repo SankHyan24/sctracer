@@ -44,6 +44,11 @@ namespace scTracer::Core {
         // Flatten BVH
         std::cerr << "Flattening BVH for GPU ...";
         bvhFlattor.flatten(sceneBVH, meshes, instances);
+        auto topBVHnode = bvhFlattor.flattenedNodes[bvhFlattor.topLevelIndex];
+        auto head = bvhFlattor.flattenedNodes[0];
+        std::cerr << sizeof(BVH::BVHFlattor::FlatNode) << std::endl;
+        printFlatNode(topBVHnode, std::cerr);
+        printFlatNode(head, std::cerr);
         std::cerr << "Done!" << std::endl;
         // TODO
         // // prepare vertex data
@@ -120,7 +125,7 @@ namespace scTracer::Core {
 
     void Scene::__createBLAS()
     {
-#pragma omp parallel for
+        // #pragma omp parallel for
         for (int i = 0; i < meshes.size(); i++)
             meshes[i]->BuildBVH();
     }

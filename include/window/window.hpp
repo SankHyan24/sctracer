@@ -13,6 +13,7 @@ namespace scTracer::Window {
     public:
         Window() : mWindow(nullptr), mGLManager(std::make_unique<GLFWManager>()), mRenderer(std::make_unique<RenderGPU>()) {
             __autoInit();
+            std::cerr << Config::LOG_GREEN << "Every thing is ready!" << Config::LOG_RESET << std::endl;
         }
 
         ~Window() {
@@ -101,6 +102,9 @@ namespace scTracer::Window {
             ImGui::Text("FPS: %.1f", fps);
             ImGui::Text("Samples: %d", mRenderer->numOfSamples);
             ImGui::Text("is dirty: %d", mRenderer->mScene->isDirty());
+            ImGui::Text("camera info: ");
+            ImGui::Text("position: %.2f %.2f %.2f", mRenderer->mScene->camera.mPosition.x, mRenderer->mScene->camera.mPosition.y, mRenderer->mScene->camera.mPosition.z);
+            ImGui::Text("direction: %.2f %.2f %.2f", mRenderer->mScene->camera.mFront.x, mRenderer->mScene->camera.mFront.y, mRenderer->mScene->camera.mFront.z);
             ImGui::End();
         }
 

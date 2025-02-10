@@ -18,7 +18,9 @@ Camera::Camera(glm::vec3 position, glm::vec3 lookAt, float fovDegree) {
 
 Camera::Camera(glm::mat4 transform, float fovDegree) {
     mPosition = glm::vec3(transform[3]);
+    mPosition = glm::normalize(glm::vec3(1, 0.5, 1));
     mFront = glm::normalize(glm::vec3(transform[2]));
+    mFront = glm::normalize(glm::vec3(1, 0, 1));
     worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
     pitch = Utils::mathUtils::radians2degrees(asin(mFront.y));
     yaw = Utils::mathUtils::radians2degrees(atan2(mFront.z, mFront.x));
@@ -32,11 +34,11 @@ Camera::Camera(glm::mat4 transform, float fovDegree) {
 }
 
 void Camera::updateCameraVectors() {
-    glm::vec3 front;
-    front.x = cos(Utils::mathUtils::degrees2radians(pitch)) * cos(Utils::mathUtils::degrees2radians(yaw));
-    front.y = sin(Utils::mathUtils::degrees2radians(pitch));
-    front.z = cos(Utils::mathUtils::degrees2radians(pitch)) * sin(Utils::mathUtils::degrees2radians(yaw));
-    mFront = glm::normalize(front);
+    // glm::vec3 front;
+    // front.x = cos(Utils::mathUtils::degrees2radians(pitch)) * cos(Utils::mathUtils::degrees2radians(yaw));
+    // front.y = sin(Utils::mathUtils::degrees2radians(pitch));
+    // front.z = cos(Utils::mathUtils::degrees2radians(pitch)) * sin(Utils::mathUtils::degrees2radians(yaw));
+    // mFront = glm::normalize(front);
 
     mRight = glm::normalize(glm::cross(mFront, worldUp));
     mUp = glm::normalize(glm::cross(mRight, mFront));
