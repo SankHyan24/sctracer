@@ -7,13 +7,16 @@
 
 #include <config.hpp>
 
-namespace scTracer::GPU {
-    class shaderRaw {
+namespace scTracer::GPU
+{
+    class shaderRaw
+    {
     public:
         shaderRaw() = delete;
         shaderRaw(std::string code, std::string path) : code(code), path(path) {}
         std::string code, path;
-        static inline shaderRaw load(std::string path, std::string includeIndentifier = "#include") {
+        static inline shaderRaw load(std::string path, std::string includeIndentifier = "#include")
+        {
             includeIndentifier += ' ';
             static bool isRecursiveCall = false;
             std::string fullSourceCode = "";
@@ -21,7 +24,8 @@ namespace scTracer::GPU {
 
             if (!file.is_open())
             {
-                std::cerr << "ERROR: could not open the shader at: " << path << "\n" << std::endl;
+                std::cerr << "ERROR: could not open the shader at: " << path << "\n"
+                          << std::endl;
                 return shaderRaw(fullSourceCode, path);
             }
 
@@ -66,8 +70,9 @@ namespace scTracer::GPU {
             file.close();
             return shaderRaw(fullSourceCode, path);
         }
+
     private:
-        static void getFilePath(const std::string& fullPath, std::string& pathWithoutFileName)
+        static void getFilePath(const std::string &fullPath, std::string &pathWithoutFileName)
         {
             // Remove the file name and store the path to this folder
             size_t found = fullPath.find_last_of("/\\");
@@ -77,13 +82,15 @@ namespace scTracer::GPU {
     class Shader
     {
     public:
-        GLuint get() const {
+        GLuint get() const
+        {
             return glID;
         }
-        Shader(const shaderRaw& raw, GLuint type) {
-            // std::cout << "Compiling shader: " << raw.path << " ......";
+        Shader(const shaderRaw &raw, GLuint type)
+        {
+            std::cout << "Compiling shader: " << raw.path << " ......";
             glID = glCreateShader(type);
-            const GLchar* src = (const GLchar*)raw.code.c_str();
+            const GLchar *src = (const GLchar *)raw.code.c_str();
             glShaderSource(glID, 1, &src, 0);
             glCompileShader(glID);
             GLint success = 0;
@@ -93,29 +100,31 @@ namespace scTracer::GPU {
                 std::string msg;
                 GLint logSize = 0;
                 glGetShaderiv(glID, GL_INFO_LOG_LENGTH, &logSize);
-                char* info = new char[logSize + 1];
+                char *info = new char[logSize + 1];
                 glGetShaderInfoLog(glID, logSize, NULL, info);
                 msg += raw.path + "\n" + info;
                 delete[] info;
                 std::cerr << Config::LOG_RED << "Compiling shader[" << Config::LOG_RESET << raw.path
-                    << Config::LOG_RED << "] failed: " << Config::LOG_RESET << msg << std::endl;
+                          << Config::LOG_RED << "] failed: " << Config::LOG_RESET << msg << std::endl;
                 reset();
                 exit(1);
             }
-            // std::cout << Config::LOG_GREEN << " Success!" << Config::LOG_RESET << std::endl;
+            std::cout << Config::LOG_GREEN << " Success!" << Config::LOG_RESET << std::endl;
         }
-        ~Shader() {
+        ~Shader()
+        {
             reset();
         }
-        void reset() {
+        void reset()
+        {
             if (glID != 0)
             {
                 glDeleteShader(glID);
                 glID = 0;
             }
         }
+
     private:
         GLuint glID;
-
     };
 }

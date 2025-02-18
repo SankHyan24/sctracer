@@ -11,7 +11,7 @@
 #include <backends/imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-// 
+//
 #include <config.hpp>
 #include <core/scene.hpp>
 #include <gpu/program.hpp>
@@ -20,19 +20,22 @@
 #include <bvh/flattenbvh.hpp>
 #include <utils.hpp>
 
-
-namespace scTracer::Window {
+namespace scTracer::Window
+{
     class Window;
 
-    enum class ShaderType {
+    enum class ShaderType
+    {
         PathTracer,
         PathTracerLowResolution,
         ImageMap,
         ToneMap
     };
 
-    struct RenderPipeline {
-        void init() {
+    struct RenderPipeline
+    {
+        void init()
+        {
             // vertex shader
             vertexShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "vertex.glsl"), GL_VERTEX_SHADER);
             // fragment shaders
@@ -42,15 +45,17 @@ namespace scTracer::Window {
             imageMapShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "imagemap.glsl"), GL_FRAGMENT_SHADER);
             toneMapShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "tonemap.glsl"), GL_FRAGMENT_SHADER);
         }
-        void load() {
+        void load()
+        {
             // programs
-            Debugger = new scTracer::GPU::Program({ vertexShader, debuggerShader });
-            PathTracer = new scTracer::GPU::Program({ vertexShader, pathTracerShader });
-            PathTracerLowResolution = new scTracer::GPU::Program({ vertexShader, pathTracerLowResolutionShader });
-            ImageMap = new scTracer::GPU::Program({ vertexShader,imageMapShader });
-            ToneMap = new scTracer::GPU::Program({ vertexShader, toneMapShader });
+            Debugger = new scTracer::GPU::Program({vertexShader, debuggerShader});
+            PathTracer = new scTracer::GPU::Program({vertexShader, pathTracerShader});
+            PathTracerLowResolution = new scTracer::GPU::Program({vertexShader, pathTracerLowResolutionShader});
+            ImageMap = new scTracer::GPU::Program({vertexShader, imageMapShader});
+            ToneMap = new scTracer::GPU::Program({vertexShader, toneMapShader});
         }
-        void reload() {
+        void reload()
+        {
             delete Debugger;
             delete PathTracer;
             delete PathTracerLowResolution;
@@ -58,7 +63,8 @@ namespace scTracer::Window {
             delete ToneMap;
             load();
         }
-        void reinit() {
+        void reinit()
+        {
             delete vertexShader;
             delete debuggerShader;
             delete pathTracerShader;
@@ -67,7 +73,8 @@ namespace scTracer::Window {
             delete toneMapShader;
             init();
         }
-        ~RenderPipeline() {
+        ~RenderPipeline()
+        {
             // delete shaders
             delete vertexShader;
             delete debuggerShader;
@@ -83,21 +90,22 @@ namespace scTracer::Window {
             delete ToneMap;
         }
         // shaders
-        GPU::Shader* vertexShader{ nullptr };
-        GPU::Shader* debuggerShader{ nullptr };
-        GPU::Shader* pathTracerShader{ nullptr };
-        GPU::Shader* pathTracerLowResolutionShader{ nullptr };
-        GPU::Shader* imageMapShader{ nullptr };
-        GPU::Shader* toneMapShader{ nullptr };
+        GPU::Shader *vertexShader{nullptr};
+        GPU::Shader *debuggerShader{nullptr};
+        GPU::Shader *pathTracerShader{nullptr};
+        GPU::Shader *pathTracerLowResolutionShader{nullptr};
+        GPU::Shader *imageMapShader{nullptr};
+        GPU::Shader *toneMapShader{nullptr};
         // programs
-        GPU::Program* Debugger{ nullptr };
-        GPU::Program* PathTracer{ nullptr };
-        GPU::Program* PathTracerLowResolution{ nullptr };
-        GPU::Program* ImageMap{ nullptr };
-        GPU::Program* ToneMap{ nullptr };
+        GPU::Program *Debugger{nullptr};
+        GPU::Program *PathTracer{nullptr};
+        GPU::Program *PathTracerLowResolution{nullptr};
+        GPU::Program *ImageMap{nullptr};
+        GPU::Program *ToneMap{nullptr};
     };
 
-    struct RenderFrameBuffers {
+    struct RenderFrameBuffers
+    {
         // for bvhs
         GLuint BVHBuffer;
         GLuint BVHTex;
@@ -122,14 +130,13 @@ namespace scTracer::Window {
         // for envmap
         GLuint envMapTex;
         GLuint envMapCDFTex;
-        void init() {
-
+        void init()
+        {
         }
-
-
     };
 
-    struct RenderFBOs {
+    struct RenderFBOs
+    {
         GLuint pathTracerFBO;
         GLuint pathTracerTexture;
         GLuint pathTracerLowResolutionFBO;
@@ -147,7 +154,8 @@ namespace scTracer::Window {
     class GLFWManager
     {
     public:
-        GLFWManager() {
+        GLFWManager()
+        {
             if (!glfwInit())
             {
                 std::cerr << "Failed to initialize GLFW" << std::endl;
@@ -160,22 +168,23 @@ namespace scTracer::Window {
             glfwWindowHint(GLFW_DEPTH_BITS, 24);
         }
 
-        ~GLFWManager() {
+        ~GLFWManager()
+        {
             glfwTerminate();
         }
     };
 
-
-
-
-    class RenderGPU {
+    class RenderGPU
+    {
     public:
-        RenderGPU() {
+        RenderGPU()
+        {
             std::cerr << "Render using [" << Config::LOG_GREEN << "GPU" << Config::LOG_RESET << "]" << std::endl;
             // auto load scenes
         }
         ~RenderGPU() = default;
-        void init() {
+        void init()
+        {
             __loadSceneLists();
             __loadScene();
             __initGPUDateBuffers();
@@ -184,7 +193,8 @@ namespace scTracer::Window {
             mQuad = new Quad();
             Utils::glUtils::checkError("RenderGPU::init");
         }
-        void render() {
+        void render()
+        {
             if (!mScene->isDirty() && mScene->settings.maxSamples != -1 && numOfSamples >= mScene->settings.maxSamples)
                 return;
 
@@ -208,9 +218,9 @@ namespace scTracer::Window {
             }
 
             Utils::glUtils::checkError("RenderGPU::render");
-
         }
-        void show() {// to screen
+        void show()
+        { // to screen
             glActiveTexture(GL_TEXTURE0);
             {
                 glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
@@ -222,7 +232,8 @@ namespace scTracer::Window {
         {
             if (!mScene->isDirty() && mScene->settings.maxSamples != -1 && numOfSamples >= mScene->settings.maxSamples)
                 return;
-            if (mScene->instancesDirty) {
+            if (mScene->instancesDirty)
+            {
                 mScene->instancesDirty = false;
                 // Update transforms
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformTex);
@@ -238,7 +249,8 @@ namespace scTracer::Window {
                 // glBufferSubData(GL_TEXTURE_BUFFER, offset, size, &mScene->bvhFlattor.flattenedNodes[index]);
             }
 
-            if (mScene->envMapDirty) {
+            if (mScene->envMapDirty)
+            {
                 mScene->envMapDirty = false;
                 // Update envmap
                 // TODO
@@ -253,7 +265,8 @@ namespace scTracer::Window {
                 glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.accumulationFBO);
                 glClear(GL_COLOR_BUFFER_BIT);
             }
-            else {
+            else
+            {
                 frameCounter++;
                 numOfSamples++;
                 currentBuffer = 1 - currentBuffer;
@@ -286,14 +299,14 @@ namespace scTracer::Window {
             Utils::glUtils::checkError("RenderGPU::update");
         }
         // Scene
-        Core::Scene* mScene{ nullptr };
+        Core::Scene *mScene{nullptr};
         // Program
         RenderPipeline mRenderPipeline;
 
         // Context
         RenderFrameBuffers mRenderFrameBuffers;
         RenderFBOs mRenderFBOs;
-        Quad* mQuad{ nullptr };
+        Quad *mQuad{nullptr};
         // Opengl buffer objects and textures for storing scene data on the GPU
         // FBOs
         // Render textures
@@ -301,20 +314,23 @@ namespace scTracer::Window {
         // Variables to track rendering status
     private:
         // for rendering
-        float previewScale{ 0.25f };// which means 1/4 of the original resolution
-        int numOfSamples{ 1 }, frameCounter{ 1 };
-        int currentBuffer{ 0 }; // 0 or 1
+        float previewScale{0.25f}; // which means 1/4 of the original resolution
+        int numOfSamples{1}, frameCounter{1};
+        int currentBuffer{0}; // 0 or 1
         // for window
-        glm::ivec2 windowSize{ Config::default_width, Config::default_height };
-        glm::ivec2 lowResSize{ windowSize.x * previewScale, windowSize.y * previewScale };
-        std::string mScenesRootPath{ Config::sceneFolder };
+        glm::ivec2 windowSize{Config::default_width, Config::default_height};
+        glm::ivec2 lowResSize{windowSize.x * previewScale, windowSize.y *previewScale};
+        std::string mScenesRootPath{Config::sceneFolder};
         std::vector<std::string> mSceneListPath;
-        void __loadSceneLists() { // load all scenes
-            for (const auto& entry : std::filesystem::directory_iterator(mScenesRootPath))
-                if (entry.is_directory()) { // check if has .pbrt file in the folder
+        void __loadSceneLists()
+        { // load all scenes
+            for (const auto &entry : std::filesystem::directory_iterator(mScenesRootPath))
+                if (entry.is_directory())
+                { // check if has .pbrt file in the folder
                     bool hasPbrt = false;
-                    for (const auto& subEntry : std::filesystem::directory_iterator(entry.path()))
-                        if (subEntry.is_regular_file() && subEntry.path().extension() == ".pbrt") {
+                    for (const auto &subEntry : std::filesystem::directory_iterator(entry.path()))
+                        if (subEntry.is_regular_file() && subEntry.path().extension() == ".pbrt")
+                        {
                             hasPbrt = true;
                             break;
                         }
@@ -322,66 +338,72 @@ namespace scTracer::Window {
                         mSceneListPath.push_back(entry.path().string().substr(mScenesRootPath.size()));
                 }
         }
-        void __loadScene() {
+        void __loadScene()
+        {
             assert(mSceneListPath.size() > 0);
             __loadScene(mSceneListPath[0]);
         }
-        void __loadScene(std::string sceneName) {
+        void __loadScene(std::string sceneName)
+        {
             // load and process scene
             std::string sceneFullPath = mScenesRootPath + sceneName;
             std::string scenePbrtName;
-            for (const auto& entry : std::filesystem::directory_iterator(sceneFullPath))
-                if (entry.is_regular_file() && entry.path().extension() == ".pbrt") {
+            for (const auto &entry : std::filesystem::directory_iterator(sceneFullPath))
+                if (entry.is_regular_file() && entry.path().extension() == ".pbrt")
+                {
                     scenePbrtName = entry.path().string();
                     break;
                 }
             std::cerr << "Loading scene [" << scenePbrtName << "]" << std::endl;
             mScene = scTracer::Importer::Pbrt::pbrtParser::parse(scenePbrtName);
-            if (!mScene->isInitialized()) mScene->processScene();
+            if (!mScene->isInitialized())
+                mScene->processScene();
         }
-        void __loadShaders() { // reload = load
+        void __loadShaders()
+        { // reload = load
             mRenderPipeline.reinit();
             mRenderPipeline.reload();
 
-            // Setup shader uniforms
-            mRenderPipeline.PathTracer->Use();
-            GLuint thisProgram = mRenderPipeline.PathTracer->get();
+            // // Setup shader uniforms
+            // mRenderPipeline.PathTracer->Use();
+            // GLuint thisProgram = mRenderPipeline.PathTracer->get();
 
-            // env map uniform here(not implemented yet)
+            // // env map uniform here(not implemented yet)
 
-            glUniform1i(glGetUniformLocation(thisProgram, "topBVHIndex"), mScene->bvhFlattor.topLevelIndex);
-            glUniform2f(glGetUniformLocation(thisProgram, "resolution"), float(windowSize.x), float(windowSize.y));
-            glUniform1i(glGetUniformLocation(thisProgram, "numOfLights"), mScene->lights.size());
-            glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
-            glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
-            glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
-            glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
-            glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
-            glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
-            glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
-            glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
-            glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
-            glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
-            mRenderPipeline.PathTracer->StopUsing();
+            // glUniform1i(glGetUniformLocation(thisProgram, "topBVHIndex"), mScene->bvhFlattor.topLevelIndex);
+            // glUniform2f(glGetUniformLocation(thisProgram, "resolution"), float(windowSize.x), float(windowSize.y));
+            // glUniform1i(glGetUniformLocation(thisProgram, "numOfLights"), mScene->lights.size());
+            // glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
+            // glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
+            // glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
+            // glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
+            // glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
+            // glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
+            // glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
+            // glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
+            // glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
+            // glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
+            // mRenderPipeline.PathTracer->StopUsing();
 
-            mRenderPipeline.PathTracerLowResolution->Use();
-            thisProgram = mRenderPipeline.PathTracerLowResolution->get();
-            glUniform1i(glGetUniformLocation(thisProgram, "topBVHIndex"), mScene->bvhFlattor.topLevelIndex);
-            glUniform2f(glGetUniformLocation(thisProgram, "resolution"), float(lowResSize.x), float(lowResSize.y));
-            glUniform1i(glGetUniformLocation(thisProgram, "numOfLights"), mScene->lights.size());
-            glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
-            glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
-            glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
-            glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
-            glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
-            glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
-            glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
-            glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
-            glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
-            glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
-            mRenderPipeline.PathTracerLowResolution->StopUsing();
+            // mRenderPipeline.PathTracerLowResolution->Use();
+            // thisProgram = mRenderPipeline.PathTracerLowResolution->get();
+            // glUniform1i(glGetUniformLocation(thisProgram, "topBVHIndex"), mScene->bvhFlattor.topLevelIndex);
+            // glUniform2f(glGetUniformLocation(thisProgram, "resolution"), float(lowResSize.x), float(lowResSize.y));
+            // glUniform1i(glGetUniformLocation(thisProgram, "numOfLights"), mScene->lights.size());
+            // glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
+            // glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
+            // glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
+            // glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
+            // glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
+            // glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
+            // glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
+            // glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
+            // glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
+            // glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
+            // mRenderPipeline.PathTracerLowResolution->StopUsing();
         }
-        void __initGPUDateBuffers() {
+        void __initGPUDateBuffers()
+        {
             std::cerr << Config::LOG_MAGENTA << "Init GPU Buffers" << Config::LOG_RESET;
 
             glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -435,7 +457,8 @@ namespace scTracer::Window {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glBindTexture(GL_TEXTURE_2D, 0);
             // Create texture for lights
-            if (mScene->lights.size() > 0) {
+            if (mScene->lights.size() > 0)
+            {
                 glGenTextures(1, &mRenderFrameBuffers.lightTex);
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightTex);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, sizeof(Core::Light) / sizeof(float) / 3 * mScene->lights.size(), 1, 0, GL_RGB, GL_FLOAT, &mScene->lights[0]);
@@ -471,7 +494,8 @@ namespace scTracer::Window {
             // glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapCDFTex);
             std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
         }
-        void __initFBOs() {
+        void __initFBOs()
+        {
             std::cerr << Config::LOG_MAGENTA << "Init FBOs" << Config::LOG_RESET;
             numOfSamples = 1;
             frameCounter = 1;
@@ -513,7 +537,8 @@ namespace scTracer::Window {
 
             glGenFramebuffers(1, &mRenderFBOs.outputFBO);
             glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.outputFBO);
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 2; i++)
+            {
                 glGenTextures(1, &mRenderFBOs.outputTexture[i]);
                 glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[i]);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowSize.x, windowSize.y, 0, GL_RGBA, GL_FLOAT, NULL);
@@ -527,6 +552,5 @@ namespace scTracer::Window {
         }
         friend class Window;
     };
-
 
 }

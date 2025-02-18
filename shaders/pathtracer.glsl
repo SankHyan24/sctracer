@@ -1,3 +1,5 @@
+#version 450 core
+
 #include "include/uniforms.glsl"
 #include "include/globals.glsl"
 #include "include/intersection.glsl"
@@ -11,14 +13,14 @@ void main() {
 
     vec2 coords = TexCoords;
     InitRNG(gl_FragCoord.xy, frameNum);
-    // float r1 = 2.0 * rand();
-    // float r2 = 2.0 * rand();
+    float r1 = 2.0 * rand();
+    float r2 = 2.0 * rand();
 
-    // vec2 jitter;
-    // jitter.x = r1 < 1.0 ? sqrt(r1) - 1.0 : 1.0 - sqrt(2.0 - r1);
-    // jitter.y = r2 < 1.0 ? sqrt(r2) - 1.0 : 1.0 - sqrt(2.0 - r2);
+    vec2 jitter;
+    jitter.x = r1 < 1.0 ? sqrt(r1) - 1.0 : 1.0 - sqrt(2.0 - r1);
+    jitter.y = r2 < 1.0 ? sqrt(r2) - 1.0 : 1.0 - sqrt(2.0 - r2);
 
-    // jitter /= (resolution * 0.5);
+    jitter /= (resolution * 0.5);
     // vec2 d = (TexCoords * 2.0 - 1.0) + jitter;
     vec2 d = (TexCoords * 2.0 - 1.0);
     float scale = tan(camera.fov * 0.5);
@@ -37,16 +39,9 @@ void main() {
 
     Ray ray = Ray(camera.position, finalRayDir);
 
-
-
-
-
-
-
     vec4 accumColor = texture(accumTexture, TexCoords);
-    vec4 pixelColor = traceRay(ray);
-
-
+    // vec4 pixelColor = traceRay(ray);
+    vec4 pixelColor =vec4(ray.origin,0);
 
     color = pixelColor ; 
 }
