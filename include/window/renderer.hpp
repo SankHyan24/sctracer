@@ -38,8 +38,9 @@ namespace scTracer::Window
         {
             // vertex shader
             vertexShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "vertex.glsl"), GL_VERTEX_SHADER);
+            debuggerVertShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "debugger.vert"), GL_VERTEX_SHADER);
             // fragment shaders
-            debuggerShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "debugger.glsl"), GL_FRAGMENT_SHADER);
+            debuggerFragShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "debugger.frag"), GL_FRAGMENT_SHADER);
             pathTracerShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "pathtracer.glsl"), GL_FRAGMENT_SHADER);
             pathTracerLowResolutionShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "pathtracer_low_resolution.glsl"), GL_FRAGMENT_SHADER);
             imageMapShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "imagemap.glsl"), GL_FRAGMENT_SHADER);
@@ -48,7 +49,7 @@ namespace scTracer::Window
         void load()
         {
             // programs
-            Debugger = new scTracer::GPU::Program({vertexShader, debuggerShader});
+            Debugger = new scTracer::GPU::Program({debuggerVertShader, debuggerFragShader});
             PathTracer = new scTracer::GPU::Program({vertexShader, pathTracerShader});
             PathTracerLowResolution = new scTracer::GPU::Program({vertexShader, pathTracerLowResolutionShader});
             ImageMap = new scTracer::GPU::Program({vertexShader, imageMapShader});
@@ -66,7 +67,8 @@ namespace scTracer::Window
         void reinit()
         {
             delete vertexShader;
-            delete debuggerShader;
+            delete debuggerVertShader;
+            delete debuggerFragShader;
             delete pathTracerShader;
             delete pathTracerLowResolutionShader;
             delete imageMapShader;
@@ -77,7 +79,8 @@ namespace scTracer::Window
         {
             // delete shaders
             delete vertexShader;
-            delete debuggerShader;
+            delete debuggerVertShader;
+            delete debuggerFragShader;
             delete pathTracerShader;
             delete pathTracerLowResolutionShader;
             delete imageMapShader;
@@ -91,7 +94,8 @@ namespace scTracer::Window
         }
         // shaders
         GPU::Shader *vertexShader{nullptr};
-        GPU::Shader *debuggerShader{nullptr};
+        GPU::Shader *debuggerFragShader{nullptr};
+        GPU::Shader *debuggerVertShader{nullptr};
         GPU::Shader *pathTracerShader{nullptr};
         GPU::Shader *pathTracerLowResolutionShader{nullptr};
         GPU::Shader *imageMapShader{nullptr};
@@ -130,9 +134,8 @@ namespace scTracer::Window
         // for envmap
         GLuint envMapTex;
         GLuint envMapCDFTex;
-        void init()
-        {
-        }
+
+        //
     };
 
     struct RenderFBOs
@@ -149,6 +152,8 @@ namespace scTracer::Window
         GLuint outputTexture[2];
 
         //
+        GLuint debugFBO;
+        GLuint debugTexture;
     };
 
     class GLFWManager
@@ -197,7 +202,6 @@ namespace scTracer::Window
         {
             if (!mScene->isDirty() && mScene->settings.maxSamples != -1 && numOfSamples >= mScene->settings.maxSamples)
                 return;
-
             glActiveTexture(GL_TEXTURE0);
             {
                 glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.pathTracerFBO);
@@ -217,13 +221,22 @@ namespace scTracer::Window
                 mQuad->draw(mRenderPipeline.ToneMap);
             }
 
+            {
+                // render debug
+                glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.debugFBO);
+                glViewport(0, 0, windowSize.x, windowSize.y);
+                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.debugTexture);
+                mQuad->draw(mRenderPipeline.Debugger);
+            }
+
             Utils::glUtils::checkError("RenderGPU::render");
         }
         void show()
         { // to screen
             glActiveTexture(GL_TEXTURE0);
             {
-                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
+                // glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
+                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.debugTexture);
                 mQuad->draw(mRenderPipeline.ImageMap);
             }
             Utils::glUtils::checkError("RenderGPU::show");
@@ -364,43 +377,43 @@ namespace scTracer::Window
             mRenderPipeline.reinit();
             mRenderPipeline.reload();
 
-            // // Setup shader uniforms
-            // mRenderPipeline.PathTracer->Use();
-            // GLuint thisProgram = mRenderPipeline.PathTracer->get();
+            // Setup shader uniforms
+            mRenderPipeline.PathTracer->Use();
+            GLuint thisProgram = mRenderPipeline.PathTracer->get();
 
-            // // env map uniform here(not implemented yet)
+            // env map uniform here(not implemented yet)
 
-            // glUniform1i(glGetUniformLocation(thisProgram, "topBVHIndex"), mScene->bvhFlattor.topLevelIndex);
-            // glUniform2f(glGetUniformLocation(thisProgram, "resolution"), float(windowSize.x), float(windowSize.y));
-            // glUniform1i(glGetUniformLocation(thisProgram, "numOfLights"), mScene->lights.size());
-            // glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
-            // glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
-            // glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
-            // glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
-            // glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
-            // glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
-            // glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
-            // glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
-            // glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
-            // glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
-            // mRenderPipeline.PathTracer->StopUsing();
+            glUniform1i(glGetUniformLocation(thisProgram, "topBVHIndex"), mScene->bvhFlattor.topLevelIndex);
+            glUniform2f(glGetUniformLocation(thisProgram, "resolution"), float(windowSize.x), float(windowSize.y));
+            glUniform1i(glGetUniformLocation(thisProgram, "numOfLights"), mScene->lights.size());
+            glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
+            glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
+            glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
+            glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
+            glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
+            glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
+            glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
+            glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
+            glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
+            glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
+            mRenderPipeline.PathTracer->StopUsing();
 
-            // mRenderPipeline.PathTracerLowResolution->Use();
-            // thisProgram = mRenderPipeline.PathTracerLowResolution->get();
-            // glUniform1i(glGetUniformLocation(thisProgram, "topBVHIndex"), mScene->bvhFlattor.topLevelIndex);
-            // glUniform2f(glGetUniformLocation(thisProgram, "resolution"), float(lowResSize.x), float(lowResSize.y));
-            // glUniform1i(glGetUniformLocation(thisProgram, "numOfLights"), mScene->lights.size());
-            // glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
-            // glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
-            // glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
-            // glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
-            // glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
-            // glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
-            // glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
-            // glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
-            // glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
-            // glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
-            // mRenderPipeline.PathTracerLowResolution->StopUsing();
+            mRenderPipeline.PathTracerLowResolution->Use();
+            thisProgram = mRenderPipeline.PathTracerLowResolution->get();
+            glUniform1i(glGetUniformLocation(thisProgram, "topBVHIndex"), mScene->bvhFlattor.topLevelIndex);
+            glUniform2f(glGetUniformLocation(thisProgram, "resolution"), float(lowResSize.x), float(lowResSize.y));
+            glUniform1i(glGetUniformLocation(thisProgram, "numOfLights"), mScene->lights.size());
+            glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
+            glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
+            glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
+            glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
+            glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
+            glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
+            glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
+            glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
+            glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
+            glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
+            mRenderPipeline.PathTracerLowResolution->StopUsing();
         }
         void __initGPUDateBuffers()
         {
@@ -492,6 +505,7 @@ namespace scTracer::Window
             // glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapTex);
             // glActiveTexture(GL_TEXTURE10);
             // glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapCDFTex);
+
             std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
         }
         void __initFBOs()
@@ -547,6 +561,17 @@ namespace scTracer::Window
                 glBindTexture(GL_TEXTURE_2D, 0);
             }
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.outputTexture[currentBuffer], 0);
+
+            // for debug
+            glGenFramebuffers(1, &mRenderFBOs.debugFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.debugFBO);
+            glGenTextures(1, &mRenderFBOs.debugTexture);
+            glBindTexture(GL_TEXTURE_2D, mRenderFBOs.debugTexture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowSize.x, windowSize.y, 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.debugTexture, 0);
 
             std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
         }

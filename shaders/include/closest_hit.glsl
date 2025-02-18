@@ -114,7 +114,7 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
         
         if (leaf > 0) // Leaf node of BLAS
         {
-            // debugger += vec3(0.2,0.,0);
+            debugger += vec3(0.2,0.,0);
             for (int i = 0; i < rightIndex; i++) // Loop through tris
             {
                 ivec3 vertIndices = ivec3(texelFetch(vertexIndicesTex, leftIndex + i).xyz);
@@ -172,7 +172,7 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
         }
         else
         {
-            // debugger += vec3(0.2,0.,0);
+            // debugger += vec3(0.2,0.,0); // 目前只有这个被访问了
 
             leftHit  = AABBIntersect(texelFetch(BVH, leftIndex  * 3 + 0).xyz, texelFetch(BVH, leftIndex  * 3 + 1).xyz, rTrans);
             rightHit = AABBIntersect(texelFetch(BVH, rightIndex * 3 + 0).xyz, texelFetch(BVH, rightIndex * 3 + 1).xyz, rTrans);

@@ -40,8 +40,7 @@ void main() {
     Ray ray = Ray(camera.position, finalRayDir);
 
     vec4 accumColor = texture(accumTexture, TexCoords);
-    // vec4 pixelColor = traceRay(ray);
-    vec4 pixelColor =vec4(ray.origin,0);
+    vec4 pixelColor = traceRay(ray);
 
     color = pixelColor ; 
 }
