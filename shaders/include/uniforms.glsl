@@ -5,7 +5,7 @@ uniform vec2 resolution;
 uniform sampler2D accumTexture;
 uniform samplerBuffer BVH;
 uniform isamplerBuffer vertexIndicesTex;
-uniform samplerBuffer verticesTex;
+uniform samplerBuffer vertexTex;
 uniform samplerBuffer normalsTex;
 uniform samplerBuffer uvsTex;
 uniform sampler2D materialsTex;

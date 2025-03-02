@@ -1,6 +1,7 @@
 #include <core/scene.hpp>
 
-namespace scTracer::Core {
+namespace scTracer::Core
+{
     void SceneSettings::printDebugInfo()
     {
         std::cout << "SceneSettings:" << std::endl;
@@ -9,27 +10,32 @@ namespace scTracer::Core {
         std::cout << "maxBounceDepth: " << maxBounceDepth << std::endl;
     }
 
-    Scene::Scene(const Camera& camera, const SceneSettings& settings) : camera(camera), settings(settings) {
+    Scene::Scene(const Camera &camera, const SceneSettings &settings) : camera(camera), settings(settings)
+    {
         sceneBVH = new BVH::BvhStructure();
     }
 
-    Scene::Scene(const Scene& scene) : camera(scene.camera), settings(scene.settings) {
-        for (auto& material : scene.materials)
+    Scene::Scene(const Scene &scene) : camera(scene.camera), settings(scene.settings)
+    {
+        for (auto &material : scene.materials)
             materials.push_back(material);
-        for (auto& mesh : scene.meshes)
+        for (auto &mesh : scene.meshes)
             meshes.push_back(mesh);
-        for (auto& instance : scene.instances)
+        for (auto &instance : scene.instances)
             instances.push_back(instance);
     }
 
-    Scene::~Scene() {
+    Scene::~Scene()
+    {
         delete sceneBVH;
         deleteMeshes();
     }
 
-    void Scene::processScene() {
+    void Scene::processScene()
+    {
         std::cerr << "Generating Material Data ...";
-        for (int i = 0;i < materials.size();i++) {
+        for (int i = 0; i < materials.size(); i++)
+        {
             Material material = materials[i].getMaterial();
             materialDatas.push_back(material);
         }
@@ -54,11 +60,13 @@ namespace scTracer::Core {
         // // prepare vertex data
         std::cerr << "Preparing meshes data ...";
         int vertexCount = 0;
-        for (int i = 0;i < meshes.size();i++) {
+        for (int i = 0; i < meshes.size(); i++)
+        {
             int numIndex = meshes[i]->bvh->getNumIndices();
-            const int* triIndices = meshes[i]->bvh->getIndices();
+            const int *triIndices = &meshes[i]->bvh->mPackedIndices[0];
 
-            for (int j = 0;j < numIndex;j++) {
+            for (int j = 0; j < numIndex; j++)
+            {
                 int index = triIndices[j];
                 int v1 = (index * 3 + 0) + vertexCount;
                 int v2 = (index * 3 + 1) + vertexCount;
@@ -78,7 +86,7 @@ namespace scTracer::Core {
         // prepare instance data(transforms)
         std::cerr << "Preparing instances data ...";
         transforms.resize(instances.size());
-        for (int i = 0;i < instances.size();i++)
+        for (int i = 0; i < instances.size(); i++)
             transforms[i] = instances[i].getTransform();
         std::cerr << "Done!" << std::endl;
 
@@ -89,12 +97,14 @@ namespace scTracer::Core {
         initialized = true;
     }
 
-    void Scene::deleteMeshes() {
-        for (auto& mesh : meshes)
+    void Scene::deleteMeshes()
+    {
+        for (auto &mesh : meshes)
             delete mesh;
     }
 
-    void Scene::printDebugInfo() {
+    void Scene::printDebugInfo()
+    {
         std::cout << "Scene::printDebugInfo" << std::endl;
         std::cout << "Assets: materials[" << materials.size() << "] meshes[" << meshes.size() << "] instances[" << instances.size() << "]" << std::endl;
         // camera
@@ -102,22 +112,26 @@ namespace scTracer::Core {
         // settings
         settings.printDebugInfo();
         // materials
-        for (int i = 0;i < materials.size();i++) {
+        for (int i = 0; i < materials.size(); i++)
+        {
             std::cout << "[" << i << "]" << std::endl;
             materials[i].printDebugInfo();
         }
         // meshes
-        for (int i = 0;i < meshes.size();i++) {
+        for (int i = 0; i < meshes.size(); i++)
+        {
             std::cout << "[" << i << "]" << std::endl;
             meshes[i]->printDebugInfo();
         }
         // instances
-        for (int i = 0;i < instances.size();i++) {
+        for (int i = 0; i < instances.size(); i++)
+        {
             std::cout << "[" << i << "]" << std::endl;
             instances[i].printDebugInfo();
         }
         // lights
-        for (int i = 0;i < lights.size();i++) {
+        for (int i = 0; i < lights.size(); i++)
+        {
             std::cout << "[" << i << "]" << std::endl;
             lights[i].printDebugInfo();
         }
@@ -125,7 +139,6 @@ namespace scTracer::Core {
 
     void Scene::__createBLAS()
     {
-        // #pragma omp parallel for
         for (int i = 0; i < meshes.size(); i++)
             meshes[i]->BuildBVH();
     }
@@ -133,7 +146,8 @@ namespace scTracer::Core {
     void Scene::__createTLAS()
     {
         std::vector<BVH::BoundingBox> bounds(instances.size());
-        for (int i = 0;i < instances.size();i++) {
+        for (int i = 0; i < instances.size(); i++)
+        {
             BVH::BoundingBox bbox = meshes[instances[i].mMeshIndex]->bvh->getWorldBounds();
             glm::mat4 transform = instances[i].getTransform();
 

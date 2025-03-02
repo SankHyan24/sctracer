@@ -2,9 +2,12 @@
 #include <iostream>
 #include <bvh/bb.hpp>
 #include <config.hpp>
+#include <atomic>
 
-namespace scTracer::BVH {
-    class BvhStructure {
+namespace scTracer::BVH
+{
+    class BvhStructure
+    {
     public:
         struct Node;
         enum NodeType
@@ -14,32 +17,27 @@ namespace scTracer::BVH {
         };
 
         BvhStructure(float traversal_cost = 2.0f, int num_bins = 64, bool usesah = false)
-            : mRoot(nullptr)
-            , mSahBinsNum(num_bins)
-            , mUseSah(usesah)
-            , mHeight(0)
-            , mTraversalCost(traversal_cost) {
+            : mRoot(nullptr), mSahBinsNum(num_bins), mUseSah(usesah), mHeight(0), mTraversalCost(traversal_cost)
+        {
         }
         ~BvhStructure() = default;
 
         // Get
-        const BoundingBox& getWorldBounds() const;
-        inline int const* getIndices() const { return &mPackedIndices[0]; }
+        const BoundingBox &getWorldBounds() const;
         inline size_t getNumIndices() const { return mPackedIndices.size(); }
-        inline Node const* getRoot() const { return mRoot; }
+        inline Node const *getRoot() const { return mRoot; }
         inline int getHeight() const { return mHeight; }
 
-
         // Print BVH statistics
-        virtual void printStatistics(std::ostream& os) const;
+        virtual void printStatistics(std::ostream &os) const;
 
         // Build
-        void build(const BoundingBox* bounds, int numbounds);
+        void build(const BoundingBox *bounds, int numbounds);
 
         // Bounding box which containing all primitives
         BoundingBox mTopBoundingBox;
         // Root node
-        Node* mRoot;
+        Node *mRoot;
         // SAH flag
         bool mUseSah;
         // Tree height
@@ -57,10 +55,11 @@ namespace scTracer::BVH {
         std::atomic<int> mNodeCount;
         // Identifiers of leaf primitives
         std::vector<int> mPackedIndices;
+
     protected:
-        virtual void _build(const BoundingBox* bounds, int numbounds);
-        virtual Node* _allocateNode();
-        virtual void  _initNodeAllocator(size_t maxnum);
+        virtual void _build(const BoundingBox *bounds, int numbounds);
+        virtual Node *_allocateNode();
+        virtual void _initNodeAllocator(size_t maxnum);
 
         struct SplitRequest
         {
@@ -69,7 +68,7 @@ namespace scTracer::BVH {
             // Number of primitives
             int numprims;
             // Root node
-            Node** ptr;
+            Node **ptr;
             // Bounding box
             BoundingBox bounds;
             // Centroid bounds
@@ -88,8 +87,9 @@ namespace scTracer::BVH {
             float overlap;
         };
 
-        void _buildNode(const SplitRequest& req, const BoundingBox* bounds, const glm::vec3* centroids, int* primindices);
-        SahSplit _findSahSplit(const SplitRequest& req, const BoundingBox* bounds, const glm::vec3* centroids, int* primindices) const;
+        void _buildNode(const SplitRequest &req, const BoundingBox *bounds, const glm::vec3 *centroids, int *primindices);
+        SahSplit _findSahSplit(const SplitRequest &req, const BoundingBox *bounds, const glm::vec3 *centroids, int *primindices) const;
+
     private:
     };
 
@@ -103,8 +103,8 @@ namespace scTracer::BVH {
             // For internal nodes: left and right children
             struct
             {
-                Node* leftChild;
-                Node* rightChild;
+                Node *leftChild;
+                Node *rightChild;
             };
 
             // For leaves: starting primitive index and number of primitives
@@ -114,7 +114,8 @@ namespace scTracer::BVH {
                 int primsNum;
             };
         };
-        void print(std::ostream& os) const {
+        void print(std::ostream &os) const
+        {
             os << "Node: " << index << " ";
             os << "Type: " << (type == kInternal ? "Internal" : "Leaf") << " ";
             switch (type)
@@ -131,7 +132,6 @@ namespace scTracer::BVH {
                 break;
             }
             os << std::endl;
-
         }
     };
 }

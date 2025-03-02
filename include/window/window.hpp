@@ -5,32 +5,35 @@
 #include <window/renderer.hpp>
 #include <config.hpp>
 
-
-namespace scTracer::Window {
+namespace scTracer::Window
+{
 
     class Window
     {
     public:
-        Window() : mWindow(nullptr), mGLManager(std::make_unique<GLFWManager>()), mRenderer(std::make_unique<RenderGPU>()) {
+        Window() : mWindow(nullptr), mGLManager(std::make_unique<GLFWManager>()), mRenderer(std::make_unique<RenderGPU>())
+        {
             __autoInit();
             std::cerr << Config::LOG_GREEN << "Every thing is ready!" << Config::LOG_RESET << std::endl;
         }
 
-        ~Window() {
-            if (mWindow) {
+        ~Window()
+        {
+            if (mWindow)
+            {
                 glfwDestroyWindow(mWindow);
             }
         }
 
-        void runLoop() {
+        void runLoop()
+        {
             std::cerr << Config::LOG_BLUE << "Running loop" << Config::LOG_RESET << std::endl;
             __run();
         }
 
-
     private:
-
-        void __autoInit() {
+        void __autoInit()
+        {
             mWindow = glfwCreateWindow(Config::default_width, Config::default_height, "scTracer", nullptr, nullptr);
             if (!mWindow)
             {
@@ -50,14 +53,13 @@ namespace scTracer::Window {
 
             // init renderer
             mRenderer->init();
-
         }
         void Window::__initImGui()
         {
             // Setup Dear ImGui context
             IMGUI_CHECKVERSION();
             ImGui::CreateContext();
-            ImGuiIO& io = ImGui::GetIO();
+            ImGuiIO &io = ImGui::GetIO();
             (void)io;
             // Setup Dear ImGui style
             ImGui::StyleColorsDark();
@@ -66,7 +68,8 @@ namespace scTracer::Window {
             ImGui_ImplOpenGL3_Init("#version 460");
         }
 
-        void __run() {
+        void __run()
+        {
             while (!glfwWindowShouldClose(mWindow))
             {
                 glfwPollEvents();
@@ -85,14 +88,13 @@ namespace scTracer::Window {
                 mRenderer->show();
                 ImGui::Render();
 
-
-
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
                 glfwSwapBuffers(mWindow);
             }
         }
 
-        void __updateWindow() {
+        void __updateWindow()
+        {
             // update window
             ImGui::SetNextWindowPos(ImVec2(20, 10), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(20, 40), ImGuiCond_FirstUseEver);
@@ -105,13 +107,15 @@ namespace scTracer::Window {
             ImGui::Text("camera info: ");
             ImGui::Text("position: %.2f %.2f %.2f", mRenderer->mScene->camera.mPosition.x, mRenderer->mScene->camera.mPosition.y, mRenderer->mScene->camera.mPosition.z);
             ImGui::Text("direction: %.2f %.2f %.2f", mRenderer->mScene->camera.mFront.x, mRenderer->mScene->camera.mFront.y, mRenderer->mScene->camera.mFront.z);
+            // up and right
+            ImGui::Text("up: %.2f %.2f %.2f", mRenderer->mScene->camera.mUp.x, mRenderer->mScene->camera.mUp.y, mRenderer->mScene->camera.mUp.z);
+            ImGui::Text("right: %.2f %.2f %.2f", mRenderer->mScene->camera.mRight.x, mRenderer->mScene->camera.mRight.y, mRenderer->mScene->camera.mRight.z);
             ImGui::End();
         }
 
         std::unique_ptr<GLFWManager> mGLManager;
-        GLFWwindow* mWindow;
+        GLFWwindow *mWindow;
 
         std::unique_ptr<RenderGPU> mRenderer;
-
     };
 }

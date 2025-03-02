@@ -4,9 +4,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace scTracer::Core {
+namespace scTracer::Core
+{
 
-    class CameraBase { // interface
+    class CameraBase
+    { // interface
     public:
         CameraBase() = default;
         virtual ~CameraBase() = default;
@@ -16,26 +18,30 @@ namespace scTracer::Core {
         virtual void printDebugInfo() = 0;
     };
 
-
-    class Camera : CameraBase {
+    class Camera : CameraBase
+    {
     public:
         Camera(glm::vec3 position, glm::vec3 lookAt, float fovDegree);
         Camera(glm::mat4 transform, float fovDegree);
         virtual ~Camera() = default;
 
-        virtual glm::mat4 getViewMatrix() override {
+        virtual glm::mat4 getViewMatrix() override
+        {
             return mViewMat;
         }
 
-        virtual glm::mat4 getProjectionMatrix() override {
+        virtual glm::mat4 getProjectionMatrix() override
+        {
             return mProjMat;
         }
 
-        virtual glm::mat4 getVP() override {
+        virtual glm::mat4 getVP() override
+        {
             return mVPMat;
         }
 
-        virtual void printDebugInfo() override {
+        virtual void printDebugInfo() override
+        {
             std::cout << "Camera Debug Info:" << std::endl;
             std::cout << "Position: " << mPosition.x << " " << mPosition.y << " " << mPosition.z << std::endl;
             std::cout << "Front: " << mFront.x << " " << mFront.y << " " << mFront.z << std::endl;
@@ -46,21 +52,14 @@ namespace scTracer::Core {
             std::cout << "FOV: " << mFov << std::endl;
         }
 
-        void rotateByZero() {
+        void rotateByZero()
+        {
             // mFront rotate by axis y, theta is 10 degree
             float x = mFront.x;
             float z = mFront.z;
-            mFront.x = x * cos(Utils::mathUtils::degrees2radians(10)) + z * sin(Utils::mathUtils::degrees2radians(10));
-            mFront.z = -x * sin(Utils::mathUtils::degrees2radians(10)) + z * cos(Utils::mathUtils::degrees2radians(10));
-
-
-            float mpx = mPosition.x;
-            float mpz = mPosition.z;
-
-            mPosition.x = mpx * cos(Utils::mathUtils::degrees2radians(0.1)) + mpz * sin(Utils::mathUtils::degrees2radians(0.1));
-            mPosition.z = -mpx * sin(Utils::mathUtils::degrees2radians(0.1)) + mpz * cos(Utils::mathUtils::degrees2radians(0.1));
-
-            // updateCameraVectors();
+            mFront.x = x * cos(Utils::mathUtils::degrees2radians(1)) + z * sin(Utils::mathUtils::degrees2radians(1));
+            mFront.z = -x * sin(Utils::mathUtils::degrees2radians(1)) + z * cos(Utils::mathUtils::degrees2radians(1));
+            updateCameraVectors();
         }
         glm::vec3 mPosition;
         glm::vec3 mFront;
@@ -73,8 +72,8 @@ namespace scTracer::Core {
 
     private:
         void updateCameraVectors();
-        glm::vec3  worldUp;
-        glm::vec3  pivot;
+        glm::vec3 worldUp;
+        glm::vec3 pivot;
 
         float pitch;
         float radius;
@@ -85,4 +84,3 @@ namespace scTracer::Core {
         glm::mat4 mVPMat;
     };
 }
-

@@ -134,13 +134,12 @@ vec4 traceRay(Ray r){
         bool hit = ClosestHit(r, state, lightSample, debugger);
         if(!hit)
             break;
-        radiance +=vec3(1.0);
-            break;
+        else{ 
+            radiance =vec3(1.0);
+            break;}
     }
 
-    radiance +=debugger;
-  
-
+    radiance =debugger;
     return vec4(radiance, alpha);
 
 }

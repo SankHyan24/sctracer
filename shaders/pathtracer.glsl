@@ -21,8 +21,7 @@ void main() {
     jitter.y = r2 < 1.0 ? sqrt(r2) - 1.0 : 1.0 - sqrt(2.0 - r2);
 
     jitter /= (resolution * 0.5);
-    // vec2 d = (TexCoords * 2.0 - 1.0) + jitter;
-    vec2 d = (TexCoords * 2.0 - 1.0);
+    vec2 d = (TexCoords * 2.0 - 1.0) + jitter;
     float scale = tan(camera.fov * 0.5);
 
     d.y *= resolution.y / resolution.x * scale;
@@ -34,13 +33,14 @@ void main() {
     float cam_r1 = rand() * TWO_PI;
     float cam_r2 = rand() * camera.aperture;
     vec3 randomAperturePos = (cos(cam_r1) * camera.right + sin(cam_r1) * camera.up) * sqrt(cam_r2);
-    vec3 finalRayDir = normalize(focalPoint );
+    vec3 finalRayDir = normalize(focalPoint  - randomAperturePos);
 
 
     Ray ray = Ray(camera.position, finalRayDir);
 
     vec4 accumColor = texture(accumTexture, TexCoords);
     vec4 pixelColor = traceRay(ray);
-
+    // pixelColor =  vec4(finalRayDir,1.0);
+    
     color = pixelColor ; 
 }

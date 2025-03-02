@@ -1,20 +1,21 @@
 #include <bvh/bvh.hpp>
 #include <numeric>
 
-namespace scTracer::BVH {
+namespace scTracer::BVH
+{
     static int constexpr kMaxPrimitivesPerLeaf = 1;
     static bool is_nan(float v) { return v != v; }
 
-    const BoundingBox& BvhStructure::getWorldBounds() const { return mTopBoundingBox; }
+    const BoundingBox &BvhStructure::getWorldBounds() const { return mTopBoundingBox; }
 
-    void BvhStructure::build(const BoundingBox* bounds, int numbounds)
+    void BvhStructure::build(const BoundingBox *bounds, int numbounds)
     {
         for (int i = 0; i < numbounds; ++i)
             mTopBoundingBox.grow(bounds[i]);
         _build(bounds, numbounds);
     }
 
-    void BvhStructure::printStatistics(std::ostream& os) const
+    void BvhStructure::printStatistics(std::ostream &os) const
     {
         os << "Class name: " << "Bvh\n";
         os << "SAH: " << (mUseSah ? "enabled\n" : "disabled\n");
@@ -24,7 +25,7 @@ namespace scTracer::BVH {
         os << "Tree height: " << getHeight() << "\n";
     }
 
-    void BvhStructure::_build(const BoundingBox* bounds, int numbounds)
+    void BvhStructure::_build(const BoundingBox *bounds, int numbounds)
     {
         _initNodeAllocator(2 * numbounds - 1);
         std::vector<glm::vec3> centroids(numbounds);
@@ -39,31 +40,31 @@ namespace scTracer::BVH {
             centroids[i] = c;
         }
 
-        SplitRequest init = { 0, numbounds, nullptr, mTopBoundingBox, centroid_bounds, 0, 1 };
+        SplitRequest init = {0, numbounds, nullptr, mTopBoundingBox, centroid_bounds, 0, 1};
         _buildNode(init, bounds, &centroids[0], &mIndices[0]);
 
         mRoot = &mNodes[0];
     }
 
-    void  BvhStructure::_initNodeAllocator(size_t maxnum) {
+    void BvhStructure::_initNodeAllocator(size_t maxnum)
+    {
         mNodes.resize(maxnum);
         mNodeCount = 0;
     }
 
-    BvhStructure::Node* BvhStructure::_allocateNode()
+    BvhStructure::Node *BvhStructure::_allocateNode()
     {
         return &mNodes[mNodeCount++];
     }
 
-    void BvhStructure::_buildNode(const SplitRequest& req, const BoundingBox* bounds, const glm::vec3* centroids, int* primindices)
+    void BvhStructure::_buildNode(const SplitRequest &req, const BoundingBox *bounds, const glm::vec3 *centroids, int *primindices)
     {
         mHeight = std::max(mHeight, req.level);
-        Node* node = _allocateNode();
+        Node *node = _allocateNode();
         node->bb = req.bounds;
         node->index = req.index;
 
-
-        if (req.numprims < 2)// Create leaf node if we have enough prims
+        if (req.numprims < 2) // Create leaf node if we have enough prims
         {
             node->type = kLeaf;
             node->startIndex = static_cast<int>(mPackedIndices.size());
@@ -93,7 +94,8 @@ namespace scTracer::BVH {
                         node->primsNum = req.numprims;
                         for (auto i = 0; i < req.numprims; ++i)
                             mPackedIndices.push_back(primindices[req.startidx + i]);
-                        if (req.ptr) *req.ptr = node;
+                        if (req.ptr)
+                            *req.ptr = node;
                         return;
                     }
                 }
@@ -124,7 +126,8 @@ namespace scTracer::BVH {
                             ++first;
                         }
 
-                        if (first == last--) break;
+                        if (first == last--)
+                            break;
 
                         rightbounds.grow(bounds[primindices[first]]);
                         rightcentroid_bounds.grow(centroids[primindices[first]]);
@@ -137,7 +140,8 @@ namespace scTracer::BVH {
                             --last;
                         }
 
-                        if (first == last) break;
+                        if (first == last)
+                            break;
 
                         leftbounds.grow(bounds[primindices[last]]);
                         leftcentroid_bounds.grow(centroids[primindices[last]]);
@@ -157,7 +161,8 @@ namespace scTracer::BVH {
                             ++first;
                         }
 
-                        if (first == last--) break;
+                        if (first == last--)
+                            break;
 
                         rightbounds.grow(bounds[primindices[first]]);
                         rightcentroid_bounds.grow(centroids[primindices[first]]);
@@ -170,7 +175,8 @@ namespace scTracer::BVH {
                             --last;
                         }
 
-                        if (first == last) break;
+                        if (first == last)
+                            break;
 
                         leftbounds.grow(bounds[primindices[last]]);
                         leftcentroid_bounds.grow(centroids[primindices[last]]);
@@ -199,17 +205,18 @@ namespace scTracer::BVH {
                 }
             }
 
-            SplitRequest leftrequest = { req.startidx, splitidx - req.startidx, &node->leftChild, leftbounds, leftcentroid_bounds, req.level + 1, (req.index << 1) };
+            SplitRequest leftrequest = {req.startidx, splitidx - req.startidx, &node->leftChild, leftbounds, leftcentroid_bounds, req.level + 1, (req.index << 1)};
             _buildNode(leftrequest, bounds, centroids, primindices);
-            SplitRequest rightrequest = { splitidx, req.numprims - (splitidx - req.startidx), &node->rightChild, rightbounds, rightcentroid_bounds, req.level + 1, (req.index << 1) + 1 };
+            SplitRequest rightrequest = {splitidx, req.numprims - (splitidx - req.startidx), &node->rightChild, rightbounds, rightcentroid_bounds, req.level + 1, (req.index << 1) + 1};
             _buildNode(rightrequest, bounds, centroids, primindices);
         }
 
         // Set parent ptr if any
-        if (req.ptr) *req.ptr = node;
+        if (req.ptr)
+            *req.ptr = node;
     }
 
-    BvhStructure::SahSplit BvhStructure::_findSahSplit(const SplitRequest& req, const BoundingBox* bounds, const glm::vec3* centroids, int* primindices) const
+    BvhStructure::SahSplit BvhStructure::_findSahSplit(const SplitRequest &req, const BoundingBox *bounds, const glm::vec3 *centroids, int *primindices) const
     {
         assert(false && "Not implemented yet");
         return SahSplit();

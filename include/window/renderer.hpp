@@ -126,7 +126,7 @@ namespace scTracer::Window
         GLuint materialBuffer;
         GLuint materialTex;
         // instances
-        GLuint transformTex;
+        GLuint transformsTex;
         // for lights
         GLuint lightTex;
         // for textures
@@ -235,13 +235,13 @@ namespace scTracer::Window
         { // to screen
             glActiveTexture(GL_TEXTURE0);
             {
-                // glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
-                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.debugTexture);
+                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
+                // glBindTexture(GL_TEXTURE_2D, mRenderFBOs.debugTexture);
                 mQuad->draw(mRenderPipeline.ImageMap);
             }
             Utils::glUtils::checkError("RenderGPU::show");
         }
-        void RenderGPU::update()
+        void update()
         {
             if (!mScene->isDirty() && mScene->settings.maxSamples != -1 && numOfSamples >= mScene->settings.maxSamples)
                 return;
@@ -249,17 +249,18 @@ namespace scTracer::Window
             {
                 mScene->instancesDirty = false;
                 // Update transforms
-                glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformTex);
+                glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformsTex);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(glm::mat4) / sizeof(float) / 4 * mScene->transforms.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->transforms[0]);
 
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.materialTex);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materials.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materialDatas[0]);
 
-                // int index = mScene->bvhFlattor.topLevelIndex;
-                // int offset = sizeof(BVH::BVHFlattor::flattenedNodes) * index;
-                // int size = sizeof(BVH::BVHFlattor::flattenedNodes) * (mScene->bvhFlattor.flattenedNodes.size() - index);
-                // glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHBuffer);
-                // glBufferSubData(GL_TEXTURE_BUFFER, offset, size, &mScene->bvhFlattor.flattenedNodes[index]);
+                int index = mScene->bvhFlattor.topLevelIndex;
+                int offset = sizeof(BVH::BVHFlattor::flattenedNodes) * index;
+                int size = sizeof(BVH::BVHFlattor::flattenedNodes) * (mScene->bvhFlattor.flattenedNodes.size() - index);
+                glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHBuffer);
+                glBufferSubData(GL_TEXTURE_BUFFER, offset, size, &mScene->bvhFlattor.flattenedNodes[index]);
+                glBufferData(GL_TEXTURE_BUFFER, sizeof(BVH::BVHFlattor::flattenedNodes) * mScene->bvhFlattor.flattenedNodes.size(), &mScene->bvhFlattor.flattenedNodes[0], GL_STATIC_DRAW);
             }
 
             if (mScene->envMapDirty)
@@ -288,11 +289,11 @@ namespace scTracer::Window
             // Update uniforms
             mRenderPipeline.PathTracer->Use();
             auto thisProgram = mRenderPipeline.PathTracer->get();
-            mScene->camera.rotateByZero();
-            glUniform3f(glGetUniformLocation(thisProgram, "camera.position"), mScene->camera.mPosition.x, mScene->camera.mPosition.y, mScene->camera.mPosition.z);
-            glUniform3f(glGetUniformLocation(thisProgram, "camera.right"), mScene->camera.mRight.x, mScene->camera.mRight.y, mScene->camera.mRight.z);
+            // mScene->camera.rotateByZero();
             glUniform3f(glGetUniformLocation(thisProgram, "camera.up"), mScene->camera.mUp.x, mScene->camera.mUp.y, mScene->camera.mUp.z);
-            glUniform3f(glGetUniformLocation(thisProgram, "camera.front"), mScene->camera.mFront.x, mScene->camera.mFront.y, mScene->camera.mFront.z);
+            glUniform3f(glGetUniformLocation(thisProgram, "camera.right"), mScene->camera.mRight.x, mScene->camera.mRight.y, mScene->camera.mRight.z);
+            glUniform3f(glGetUniformLocation(thisProgram, "camera.forward"), mScene->camera.mFront.x, mScene->camera.mFront.y, mScene->camera.mFront.z);
+            glUniform3f(glGetUniformLocation(thisProgram, "camera.position"), mScene->camera.mPosition.x, mScene->camera.mPosition.y, mScene->camera.mPosition.z);
             glUniform1f(glGetUniformLocation(thisProgram, "camera.fov"), mScene->camera.mFov);
             glUniform1f(glGetUniformLocation(thisProgram, "camera.focalDist"), mScene->camera.mFocalDist);
             glUniform1f(glGetUniformLocation(thisProgram, "camera.aperture"), mScene->camera.mAperture);
@@ -389,7 +390,7 @@ namespace scTracer::Window
             glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
             glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
             glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
-            glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
+            glUniform1i(glGetUniformLocation(thisProgram, "vertexTex"), 3);
             glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
             glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
             glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
@@ -406,7 +407,7 @@ namespace scTracer::Window
             glUniform1i(glGetUniformLocation(thisProgram, "accumTexture"), 0);
             glUniform1i(glGetUniformLocation(thisProgram, "BVH"), 1);
             glUniform1i(glGetUniformLocation(thisProgram, "vertexIndicesTex"), 2);
-            glUniform1i(glGetUniformLocation(thisProgram, "verticesTex"), 3);
+            glUniform1i(glGetUniformLocation(thisProgram, "vertexTex"), 3);
             glUniform1i(glGetUniformLocation(thisProgram, "normalsTex"), 4);
             glUniform1i(glGetUniformLocation(thisProgram, "uvsTex"), 5);
             glUniform1i(glGetUniformLocation(thisProgram, "materialsTex"), 6);
@@ -463,8 +464,8 @@ namespace scTracer::Window
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glBindTexture(GL_TEXTURE_2D, 0);
             // Create buffer and texture for transforms
-            glGenTextures(1, &mRenderFrameBuffers.transformTex);
-            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformTex);
+            glGenTextures(1, &mRenderFrameBuffers.transformsTex);
+            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformsTex);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(glm::mat4) / sizeof(float) / 4 * mScene->transforms.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->transforms[0]);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -496,7 +497,7 @@ namespace scTracer::Window
             glActiveTexture(GL_TEXTURE6);
             glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.materialTex);
             glActiveTexture(GL_TEXTURE7);
-            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformTex);
+            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformsTex);
             glActiveTexture(GL_TEXTURE8);
             glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightTex);
 

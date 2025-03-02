@@ -1,4 +1,6 @@
 #version 450 core
+#include "include/uniforms.glsl"
+#include "include/globals.glsl"
 
 in vec2 TexCoords;             
 out vec4 FragColor;
