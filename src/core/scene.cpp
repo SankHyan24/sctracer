@@ -50,13 +50,18 @@ namespace scTracer::Core
         // Flatten BVH
         std::cerr << "Flattening BVH for GPU ...";
         bvhFlattor.flatten(sceneBVH, meshes, instances);
-        auto topBVHnode = bvhFlattor.flattenedNodes[bvhFlattor.topLevelIndex];
-        auto head = bvhFlattor.flattenedNodes[0];
-        std::cerr << sizeof(BVH::BVHFlattor::FlatNode) << std::endl;
-        printFlatNode(topBVHnode, std::cerr);
-        printFlatNode(head, std::cerr);
         std::cerr << "Done!" << std::endl;
         // TODO
+        // print flattened BVH to debug
+        // std::cout << "head node index: " << bvhFlattor.topLevelIndex << std::endl;
+        // int idx = 0;
+        // for (auto &node : bvhFlattor.flattenedNodes)
+        // {
+        //     std::cout << "Node: " << idx++ << std::endl;
+        //     std::cout << "Bounds min: " << node.boundsmin.x << " " << node.boundsmin.y << " " << node.boundsmin.z << std::endl;
+        //     std::cout << "Bounds max: " << node.boundsmax.x << " " << node.boundsmax.y << " " << node.boundsmax.z << std::endl;
+        //     std::cout << "LeftRightLeaf: " << node.LeftRightLeaf.x << " " << node.LeftRightLeaf.y << " " << node.LeftRightLeaf.z << std::endl;
+        // }
         // // prepare vertex data
         std::cerr << "Preparing meshes data ...";
         int vertexCount = 0;
@@ -68,14 +73,13 @@ namespace scTracer::Core
             for (int j = 0; j < numIndex; j++)
             {
                 int index = triIndices[j];
-                int v1 = (index * 3 + 0) + vertexCount;
-                int v2 = (index * 3 + 1) + vertexCount;
-                int v3 = (index * 3 + 2) + vertexCount;
+                int v1 = meshes[i]->indices[index].x;
+                int v2 = meshes[i]->indices[index].y;
+                int v3 = meshes[i]->indices[index].z;
                 sceneTriIndices.push_back(v1);
                 sceneTriIndices.push_back(v2);
                 sceneTriIndices.push_back(v3);
             }
-
             sceneVertices.insert(sceneVertices.end(), meshes[i]->vertices.begin(), meshes[i]->vertices.end());
             sceneNormals.insert(sceneNormals.end(), meshes[i]->normals.begin(), meshes[i]->normals.end());
             sceneMeshUvs.insert(sceneMeshUvs.end(), meshes[i]->uvs.begin(), meshes[i]->uvs.end());

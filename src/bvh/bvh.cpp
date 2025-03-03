@@ -42,6 +42,9 @@ namespace scTracer::BVH
 
         SplitRequest init = {0, numbounds, nullptr, mTopBoundingBox, centroid_bounds, 0, 1};
         _buildNode(init, bounds, &centroids[0], &mIndices[0]);
+        // std::cout << "BVH built\n"; // mIndices
+        // for (auto i = 0; i < mPackedIndices.size(); i++)
+        //     std::cout << mPackedIndices[i] << " ";
 
         mRoot = &mNodes[0];
     }

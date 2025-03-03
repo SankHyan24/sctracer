@@ -60,7 +60,7 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
         
         if (leaf > 0) // Leaf node of BLAS
         {
-            // debugger += vec3(0.,0.,0.2);
+            debugger += vec3(0.,0.,0.2);
             for (int i = 0; i < rightIndex; i++) // Loop through tris
             {
                 ivec3 vertIndices = ivec3(texelFetch(vertexIndicesTex, leftIndex + i).xyz);
@@ -105,7 +105,7 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
         }
         else if (leaf < 0) // Leaf node of TLAS
         {
-            // debugger += vec3(0.,0.2,0);
+            debugger += vec3(0.,0.2,0);
 
             vec4 r1 = texelFetch(transformsTex, ivec2((-leaf - 1) * 4 + 0, 0), 0).xyzw;
             vec4 r2 = texelFetch(transformsTex, ivec2((-leaf - 1) * 4 + 1, 0), 0).xyzw;
