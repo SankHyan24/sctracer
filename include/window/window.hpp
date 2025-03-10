@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include <window/renderer.hpp>
+#include <cpu/cpurenderer.hpp>
 #include <config.hpp>
 
 namespace scTracer::Window
@@ -30,6 +31,7 @@ namespace scTracer::Window
             std::cerr << Config::LOG_BLUE << "Running loop" << Config::LOG_RESET << std::endl;
             __run();
         }
+        void useGPU() { mUseCPU = false; }
 
     private:
         void __autoInit()
@@ -53,6 +55,8 @@ namespace scTracer::Window
 
             // init renderer
             mRenderer->init();
+            if (mUseCPU)
+                mCPURenderer = new CPU::CPURenderer();
         }
         void Window::__initImGui()
         {
@@ -76,16 +80,30 @@ namespace scTracer::Window
                 ImGui_ImplOpenGL3_NewFrame();
                 ImGui_ImplGlfw_NewFrame();
 
-                mRenderer->update();
+                if (!mUseCPU)
+                    mRenderer->update(); // only for gpu to update gpu data
+
                 glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 ImGui::NewFrame();
-                __updateWindow();
-                mRenderer->render();
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-                glViewport(0, 0, mRenderer->windowSize.x, mRenderer->windowSize.y);
-                mRenderer->show();
+                __updateImguiWindow();
+                std::cout << "frame ";
+                if (!mUseCPU)
+                {
+                    mRenderer->render(); // render gpu and show on the screen
+                    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                    glViewport(0, 0, mRenderer->windowSize.x, mRenderer->windowSize.y);
+                    mRenderer->show();
+                }
+                else
+                {
+                    mCPURenderer->render2Canvas(*mRenderer->mScene); // render using cpu
+                    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                    glViewport(0, 0, mRenderer->windowSize.x, mRenderer->windowSize.y);
+                    mRenderer->showCPU(mCPURenderer);
+                }
+                std::cout << "rendered" << std::endl;
                 ImGui::Render();
 
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -93,7 +111,7 @@ namespace scTracer::Window
             }
         }
 
-        void __updateWindow()
+        void __updateImguiWindow()
         {
             // update window
             ImGui::SetNextWindowPos(ImVec2(20, 10), ImGuiCond_FirstUseEver);
@@ -115,7 +133,10 @@ namespace scTracer::Window
 
         std::unique_ptr<GLFWManager> mGLManager;
         GLFWwindow *mWindow;
-
         std::unique_ptr<RenderGPU> mRenderer;
+
+        // for cpu debug
+        bool mUseCPU{true};
+        CPU::CPURenderer *mCPURenderer{nullptr};
     };
 }

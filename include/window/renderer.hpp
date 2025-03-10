@@ -19,6 +19,7 @@
 #include <importer/importer.hpp>
 #include <bvh/flattenbvh.hpp>
 #include <utils.hpp>
+#include <cpu/cpurenderer.hpp>
 
 namespace scTracer::Window
 {
@@ -236,10 +237,28 @@ namespace scTracer::Window
             glActiveTexture(GL_TEXTURE0);
             {
                 glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
-                // glBindTexture(GL_TEXTURE_2D, mRenderFBOs.debugTexture);
                 mQuad->draw(mRenderPipeline.ImageMap);
             }
             Utils::glUtils::checkError("RenderGPU::show");
+        }
+        void showCPU(CPU::CPURenderer *cpuRenderer)
+        {
+            float *canvas = cpuRenderer->mCanvas;
+            int height = cpuRenderer->mCanvasHeight;
+            int width = cpuRenderer->mCanvasWidth;
+            glActiveTexture(GL_TEXTURE0);
+            {
+                glBindTexture(GL_TEXTURE_2D, mRenderFBOs.pathTracerLowResolutionTexture);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, canvas);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                mQuad->draw(mRenderPipeline.ImageMap);
+                glBindTexture(GL_TEXTURE_2D, 0);
+            }
+            Utils::glUtils::checkError("RenderGPU::showCPU");
         }
         void update()
         {
@@ -256,11 +275,10 @@ namespace scTracer::Window
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materials.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materialDatas[0]);
 
                 int index = mScene->bvhFlattor.topLevelIndex;
-                int offset = sizeof(BVH::BVHFlattor::flattenedNodes) * index;
-                int size = sizeof(BVH::BVHFlattor::flattenedNodes) * (mScene->bvhFlattor.flattenedNodes.size() - index);
+                int offset = sizeof(BVH::BVHFlattor::FlatNode) * index;
+                int size = sizeof(BVH::BVHFlattor::FlatNode) * (mScene->bvhFlattor.flattenedNodes.size() - index);
                 glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHBuffer);
                 glBufferSubData(GL_TEXTURE_BUFFER, offset, size, &mScene->bvhFlattor.flattenedNodes[index]);
-                glBufferData(GL_TEXTURE_BUFFER, sizeof(BVH::BVHFlattor::flattenedNodes) * mScene->bvhFlattor.flattenedNodes.size(), &mScene->bvhFlattor.flattenedNodes[0], GL_STATIC_DRAW);
             }
 
             if (mScene->envMapDirty)
@@ -424,7 +442,7 @@ namespace scTracer::Window
             // Create buffer and texture for BVH
             glGenBuffers(1, &mRenderFrameBuffers.BVHBuffer);
             glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHBuffer);
-            glBufferData(GL_TEXTURE_BUFFER, sizeof(BVH::BVHFlattor::flattenedNodes) * mScene->bvhFlattor.flattenedNodes.size(), &mScene->bvhFlattor.flattenedNodes[0], GL_STATIC_DRAW);
+            glBufferData(GL_TEXTURE_BUFFER, sizeof(BVH::BVHFlattor::FlatNode) * mScene->bvhFlattor.flattenedNodes.size(), &mScene->bvhFlattor.flattenedNodes[0], GL_STATIC_DRAW);
             glGenTextures(1, &mRenderFrameBuffers.BVHTex);
             glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHTex);
             glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, mRenderFrameBuffers.BVHBuffer);

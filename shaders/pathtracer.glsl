@@ -40,7 +40,5 @@ void main() {
 
     vec4 accumColor = texture(accumTexture, TexCoords);
     vec4 pixelColor = traceRay(ray);
-    // pixelColor =  vec4(finalRayDir,1.0);
-    
-    color = pixelColor ; 
+    color = pixelColor+accumColor ; 
 }

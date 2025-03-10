@@ -51,7 +51,7 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
 
     while (index != -1)
     {
-        ivec3 LRLeaf = ivec3(texelFetch(BVH, index * 3 +2).xyz);
+        ivec3 LRLeaf = ivec3(texelFetch(BVH, index * 3 + 2 ).xyz);
 
         int leftIndex  = int(LRLeaf.x);
         int rightIndex = int(LRLeaf.y);

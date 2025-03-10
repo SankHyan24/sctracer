@@ -20,7 +20,7 @@ Camera::Camera(glm::vec3 position, glm::vec3 lookAt, float fovDegree)
 Camera::Camera(glm::mat4 transform, float fovDegree)
 {
     mPosition = glm::vec3(transform[3]);
-    mPosition = glm::vec3(0, 1, 16.8);
+    mPosition = glm::vec3(0, 1, 6.8);
     mFront = glm::normalize(glm::vec3(transform[2]));
     // mFront = glm::normalize(glm::vec3(1, 0, 0));
     worldUp = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f));
