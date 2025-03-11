@@ -9,22 +9,24 @@
 #include <core/light.hpp>
 
 #include <bvh/flattenbvh.hpp>
-namespace scTracer::Core {
+namespace scTracer::Core
+{
 
-    struct SceneSettings {
+    struct SceneSettings
+    {
         int image_width;
         int image_height;
         int maxBounceDepth;
-        int maxSamples{ -1 };
-        SceneSettings(int image_width, int image_height, int maxBounceDepth) : image_width(image_width), image_height(image_height), maxBounceDepth(maxBounceDepth) {}
+        int maxSamples{64};
+        SceneSettings(int image_width, int image_height, int maxBounceDepth, int maxSamples) : image_width(image_width), image_height(image_height), maxBounceDepth(maxBounceDepth), maxSamples(maxSamples) {}
         void printDebugInfo();
     };
 
     class Scene
     {
     public:
-        Scene(const Camera& camera, const SceneSettings& settings);
-        Scene::Scene(const Scene& scene);
+        Scene(const Camera &camera, const SceneSettings &settings);
+        Scene::Scene(const Scene &scene);
         ~Scene();
 
         void processScene();
@@ -35,11 +37,12 @@ namespace scTracer::Core {
         bool isDirty() const { return dirty; }
         bool isInitialized() const { return initialized; }
 
-        bool dirty{ true };
-        bool instancesDirty{ true };
-        bool envMapDirty{ true };
+        bool dirty{true};
+        bool instancesDirty{true};
+        bool envMapDirty{true};
 
-        bool initialized{ false };
+        bool initialized{false};
+
     public:
         // scene settings
         Camera camera;
@@ -49,7 +52,7 @@ namespace scTracer::Core {
         // assets
         std::vector<MaterialRaw> materials;
         std::vector<Material> materialDatas;
-        std::vector<Mesh*> meshes; // pointers to mesh because mesh is a heavy object
+        std::vector<Mesh *> meshes; // pointers to mesh because mesh is a heavy object
         std::vector<Light> lights;
 
         // meshes data
@@ -60,16 +63,15 @@ namespace scTracer::Core {
         // instances data
         std::vector<glm::mat4> transforms;
 
-
         // instances
         std::vector<Instance> instances;
 
     private:
         // for bvh
         BVH::BoundingBox sceneBounds;
-        BVH::BvhStructure* sceneBVH;
-        void __createBLAS();// create Bottom Level Acceleration Structures(meshes BVH)
-        void __createTLAS();// create Top Level Acceleration Structures(instances BVH)
+        BVH::BvhStructure *sceneBVH;
+        void __createBLAS(); // create Bottom Level Acceleration Structures(meshes BVH)
+        void __createTLAS(); // create Top Level Acceleration Structures(instances BVH)
     };
 
 }
