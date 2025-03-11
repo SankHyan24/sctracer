@@ -2,6 +2,23 @@
 
 namespace scTracer::CPU
 {
+    void Integrator::GetMaterial(State state, Ray r)
+    {
+        int index = state.matID;
+        Core::Material mat;
+        mat = mScene->materialDatas[index];
+        float texIDs = mat.baseColorTexId;
+        state.mat.baseColor = mat.baseColor;
+        state.mat.ior = mat.ior;
+        state.mat.metallic = mat.metallic;
+        state.mat.roughness = mat.roughness;
+        state.mat.subsurface = mat.subsurface;
+        state.mat.specularTint = mat.specularTint;
+        state.mat.sheen = mat.sheen;
+        state.mat.emission = mat.emission;
+        state.eta = glm::dot(r.direction, state.normal) > 0.0 ? mat.ior : 1.0f / mat.ior;
+    }
+
     bool Integrator::ClosestHit(Ray r, State &state, LightSampleRec lightSample, glm::vec3 &debugger)
     {
         float t = INF;
@@ -37,8 +54,6 @@ namespace scTracer::CPU
 
             if (leaf > 0) // Leaf node of BLAS
             {
-                // std::cout << "Leaf node of BLAS" << std::endl;
-                debugger += glm::vec3(0., 0., 0.2);
                 for (int i = 0; i < rightIndex; i++) // Loop through tris
                 {
                     glm::ivec3 vertIndices = glm::ivec3(mScene->sceneTriIndices[(leftIndex + i) * 3 + 0],
@@ -83,9 +98,6 @@ namespace scTracer::CPU
             }
             else if (leaf < 0) // Leaf node of TLAS
             {
-                // std::cout << "Leaf node of TLAS" << std::endl;
-                debugger += glm::vec3(0., 0.2, 0);
-
                 glm::mat4 transform = mScene->transforms[(-leaf - 1)];
 
                 transMat = transform;
@@ -102,8 +114,6 @@ namespace scTracer::CPU
             }
             else
             {
-                debugger += glm::vec3(0.2, 0., 0);
-
                 leftHit = AABBIntersect(mScene->bvhFlattor.flattenedNodes[leftIndex].boundsmin, mScene->bvhFlattor.flattenedNodes[leftIndex].boundsmax, rTrans);
                 rightHit = AABBIntersect(mScene->bvhFlattor.flattenedNodes[rightIndex].boundsmin, mScene->bvhFlattor.flattenedNodes[rightIndex].boundsmax, rTrans);
 
@@ -154,6 +164,51 @@ namespace scTracer::CPU
         state.hitDist = t;
         state.fhp = r.origin + r.direction * t;
 
-        return false;
+        // Ray hit a triangle and not a light source
+        if (triID.x != -1)
+        {
+            state.isEmitter = false;
+
+            // Normals
+            glm::vec3 n0_3 = mScene->sceneNormals[triID.x];
+            glm::vec3 n1_3 = mScene->sceneNormals[triID.y];
+            glm::vec3 n2_3 = mScene->sceneNormals[triID.z];
+            // UVs
+            glm::vec2 n0uv = mScene->sceneMeshUvs[triID.x];
+            glm::vec2 n1uv = mScene->sceneMeshUvs[triID.y];
+            glm::vec2 n2uv = mScene->sceneMeshUvs[triID.z];
+
+            glm::vec4 n0 = glm::vec4(n0_3, n0uv.y);
+            glm::vec4 n1 = glm::vec4(n1_3, n1uv.y);
+            glm::vec4 n2 = glm::vec4(n2_3, n2uv.y);
+
+            // Get texcoords from w coord of vertices and normals
+            glm::vec2 t0 = glm::vec2(vert0.w, n0.w);
+            glm::vec2 t1 = glm::vec2(vert1.w, n1.w);
+            glm::vec2 t2 = glm::vec2(vert2.w, n2.w);
+
+            // Interpolate texture coords and normals using barycentric coords
+            state.texCoord = t0 * bary.x + t1 * bary.y + t2 * bary.z;
+            glm::vec3 normal = glm::normalize(n0_3 * bary.x + n1_3 * bary.y + n2_3 * bary.z);
+
+            state.normal = glm::normalize(glm::transpose(glm::inverse(glm::mat3(transform))) * normal);
+            state.ffnormal = dot(state.normal, r.direction) <= 0.0 ? state.normal : -state.normal;
+
+            // Calculate tangent and bitangent
+            glm::vec3 deltaPos1 = glm::vec3(vert1.x, vert1.y, vert1.z) - glm::vec3(vert0.x, vert0.y, vert0.z);
+            glm::vec3 deltaPos2 = glm::vec3(vert2.x, vert2.y, vert2.z) - glm::vec3(vert0.x, vert0.y, vert0.z);
+
+            glm::vec2 deltaUV1 = t1 - t0;
+            glm::vec2 deltaUV2 = t2 - t0;
+
+            float invdet = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+
+            state.tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * invdet;
+            state.bitangent = (deltaPos2 * deltaUV1.x - deltaPos1 * deltaUV2.x) * invdet;
+
+            state.tangent = glm::normalize(glm::mat3(transform) * state.tangent);
+            state.bitangent = glm::normalize(glm::mat3(transform) * state.bitangent);
+        }
+        return true;
     }
 }

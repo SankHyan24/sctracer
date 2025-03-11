@@ -7,25 +7,27 @@
 #include <core/texture.hpp>
 #include <glm/glm.hpp>
 
-namespace scTracer::Core {
-    enum class MaterialType {
+namespace scTracer::Core
+{
+    enum class MaterialType
+    {
         Diffuse,
         Conductor,
     };
 
     const std::vector<std::string> materialTypeStrings{
         "diffuse",
-        "conductor"
-    };
+        "conductor"};
 
-    MaterialType getMaterialType(const std::string& type);
+    MaterialType getMaterialType(const std::string &type);
 
-    class Material {
+    class Material
+    {
     public:
         glm::vec3 baseColor;
         float anisotropic;
 
-        glm::vec3 emission;
+        glm::vec3 emission{0.0f};
         float padding1;
 
         float metallic;
@@ -57,22 +59,27 @@ namespace scTracer::Core {
         float padding2;
     };
 
-    class MaterialRaw {
+    class MaterialRaw
+    {
 
     public:
         MaterialRaw() = default;
         virtual ~MaterialRaw() = default;
-        void typePreprocess() {
-            if (mType == MaterialType::Diffuse) {
+        void typePreprocess()
+        {
+            if (mType == MaterialType::Diffuse)
+            {
                 roughness = 1.0f;
                 metallic = 0.0f;
             }
-            else if (mType == MaterialType::Conductor) {
+            else if (mType == MaterialType::Conductor)
+            {
                 roughness = 0.0f;
                 metallic = 1.0f;
             }
         }
-        void printDebugInfo() {
+        void printDebugInfo()
+        {
             std::cout << "MaterialRaw Name: " << name << std::endl;
             std::cout << "Basecolor: " << basecolor.x << " " << basecolor.y << " " << basecolor.z << std::endl;
             std::cout << "MaterialRaw Type: " << materialTypeStrings[static_cast<int>(mType)] << std::endl;
@@ -80,7 +87,8 @@ namespace scTracer::Core {
             std::cout << "Metallic: " << metallic << std::endl;
         }
 
-        Material getMaterial() {
+        Material getMaterial()
+        {
             Material mat;
             mat.baseColor = basecolor;
             mat.roughness = roughness;
@@ -95,12 +103,6 @@ namespace scTracer::Core {
         MaterialType mType;
         float roughness;
         float metallic;
-
     };
-
-
-
-
-
 
 }

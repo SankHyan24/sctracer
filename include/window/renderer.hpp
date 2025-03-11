@@ -272,7 +272,7 @@ namespace scTracer::Window
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(glm::mat4) / sizeof(float) / 4 * mScene->transforms.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->transforms[0]);
 
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.materialTex);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materials.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materialDatas[0]);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materialDatas.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materialDatas[0]);
 
                 int index = mScene->bvhFlattor.topLevelIndex;
                 int offset = sizeof(BVH::BVHFlattor::FlatNode) * index;

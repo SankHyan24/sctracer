@@ -76,6 +76,7 @@ namespace scTracer::CPU
 
             uniforms.resolution = glm::vec2(mCanvasWidth, mCanvasHeight);
             uniforms.topBVHIndex = mScene->bvhFlattor.topLevelIndex;
+            uniforms.maxDepth = mScene->settings.maxBounceDepth;
         }
 
     private:
@@ -124,7 +125,7 @@ namespace scTracer::CPU
             glm::vec4 color = pixelColor;
 
             {
-                color = CPU::toneMap(color);
+                // color = CPU::toneMap(color);
                 mCanvas[(y * mCanvasWidth + x) * 4 + 0] = color.r;
                 mCanvas[(y * mCanvasWidth + x) * 4 + 1] = color.g;
                 mCanvas[(y * mCanvasWidth + x) * 4 + 2] = color.b;
@@ -153,19 +154,20 @@ namespace scTracer::CPU
                 bool hit = ClosestHit(ray, state, lightSample, debuger);
                 if (!hit)
                 {
+                    {
+                    }
+                    break;
                 }
-                else
-                {
-                    radiance = glm::vec3(1.0);
-                }
-                break;
+                if (state.depth == uniforms.maxDepth)
+                    break;
             }
-            // radiance += debuger;
+            radiance += state.mat.emission * throughput;
             return glm::vec4(radiance, alpha);
         }
 
         bool ClosestHit(Ray r, State &state, LightSampleRec lightSample, glm::vec3 &debugger);
         float AABBIntersect(glm::vec3 minCorner, glm::vec3 maxCorner, Ray r);
+        void GetMaterial(State state, Ray r);
     };
 
 }

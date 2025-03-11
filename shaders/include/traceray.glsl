@@ -39,7 +39,6 @@ void GetMaterial(inout State state, in Ray r)
 
     mat.baseColor          = param1.rgb;
     mat.anisotropic        = param1.w;
-
     mat.emission           = param2.rgb;
 
     mat.metallic           = param3.x;
@@ -133,10 +132,18 @@ vec4 traceRay(Ray r){
     for (state.depth = 0;; state.depth++){
         bool hit = ClosestHit(r, state, lightSample, debugger);
         if(!hit)
+        {
+            // BACKGROUND here
+            {
+            }
             break;
-        else{ 
-            radiance =vec3(1.0);
-        break;}
+        }
+        GetMaterial(state, r);
+        radiance += state.mat.emission * throughput;
+
+
+        if(state.depth == maxDepth)
+            break;
     }
 
     // radiance +=debugger;
