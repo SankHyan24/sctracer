@@ -4,6 +4,8 @@
 #include "include/globals.glsl"
 #include "include/sampling.glsl"
 #include "include/intersection.glsl"
+#include "include/disney.glsl"
+#include "include/anyhit.glsl"
 #include "include/closest_hit.glsl"
 #include "include/traceray.glsl"
 

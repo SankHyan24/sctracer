@@ -235,8 +235,15 @@ namespace scTracer::Window
         void show()
         { // to screen
             glActiveTexture(GL_TEXTURE0);
+            // if (mScene->isDirty() || numOfSamples == 1)
+            // {
+            //     glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulationFBO);
+            //     mQuad->draw(mRenderPipeline.ToneMap);
+            // }
+            // else
             {
                 glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
+                // glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulationTexture);
                 mQuad->draw(mRenderPipeline.ImageMap);
             }
             Utils::glUtils::checkError("RenderGPU::show");
@@ -266,7 +273,6 @@ namespace scTracer::Window
                 return;
             if (mScene->instancesDirty)
             {
-
                 mScene->instancesDirty = false;
                 // Update transforms
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformsTex);
@@ -304,6 +310,8 @@ namespace scTracer::Window
                 frameCounter++;
                 numOfSamples++;
                 currentBuffer = 1 - currentBuffer;
+                // glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.outputFBO);
+                // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.outputTexture[currentBuffer], 0);
             }
 
             // Update uniforms

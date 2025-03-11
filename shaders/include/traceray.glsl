@@ -41,12 +41,6 @@ void GetMaterial(inout State state, in Ray r)
     mat.anisotropic        = param1.w;
     mat.emission           = param2.rgb;
 
-    // if(mat.baseColor.x == 0.14)
-    // {
-    //     state.isEmitter = true;
-    //     mat.emission           = vec3(11.0);
-    // }
-
     mat.metallic           = param3.x;
     mat.roughness          = max(param3.y, 0.001);
     mat.subsurface         = param3.z;
@@ -115,6 +109,62 @@ void GetMaterial(inout State state, in Ray r)
     state.eta = dot(r.direction, state.normal) < 0.0 ? (1.0 / mat.ior) : mat.ior;
 }
 
+vec3 DirectLight(in Ray r, in State state, bool isSurface)
+{
+    vec3 Ld = vec3(0.0);
+    vec3 Li = vec3(0.0);
+    vec3 scatterPos = state.fhp + state.normal * EPS;
+
+    ScatterSampleRec scatterSample;
+
+    // Analytic Lights
+    {
+        LightSampleRec lightSample;
+        Light light;
+
+        //Pick a light to sample
+        int index = int(rand() * float(numOfLights)) * 5;
+
+        // Fetch light Data
+        vec3 position = texelFetch(lightsTex, ivec2(index + 0, 0), 0).xyz;
+        vec3 emission = texelFetch(lightsTex, ivec2(index + 1, 0), 0).xyz;
+        vec3 u        = texelFetch(lightsTex, ivec2(index + 2, 0), 0).xyz; // u vector for rect
+        vec3 v        = texelFetch(lightsTex, ivec2(index + 3, 0), 0).xyz; // v vector for rect
+        vec3 params   = texelFetch(lightsTex, ivec2(index + 4, 0), 0).xyz;
+        float radius  = params.x;
+        float area    = params.y;
+        float type    = params.z; // 0->Rect, 1->Sphere, 2->Distant
+
+        light = Light(position, emission, u, v, radius, area, type);
+        SampleOneLight(light, scatterPos, lightSample);
+        Li = lightSample.emission;
+
+        if (dot(lightSample.direction, lightSample.normal) < 0.0) // Required for quad lights with single sided emission
+        {
+            Ray shadowRay = Ray(scatterPos, lightSample.direction);
+
+            // If there are volumes in the scene then evaluate transmittance rather than a binary anyhit test
+
+            // If there are no volumes in the scene then use a simple binary hit test
+            bool inShadow = AnyHit(shadowRay, lightSample.dist - EPS);
+
+            if (!inShadow)
+            {
+                scatterSample.f = DisneyEval(state, -r.direction, state.ffnormal, lightSample.direction, scatterSample.pdf);
+
+                float misWeight = 1.0;
+                if(light.area > 0.0) // No MIS for distant light
+                    misWeight = PowerHeuristic(lightSample.pdf, scatterSample.pdf);
+
+                if (scatterSample.pdf > 0.0)
+                    Ld += misWeight * Li * scatterSample.f / lightSample.pdf;
+            }
+        }
+    }
+
+    return Ld;
+}
+
 
 
 
@@ -145,7 +195,7 @@ vec4 traceRay(Ray r){
             break;
         }
         GetMaterial(state, r);
-        radiance += state.mat.emission * throughput;
+        radiance += state.mat.emission * throughput; // emission from the surface
 
         if (state.isEmitter)
         {
@@ -153,19 +203,31 @@ vec4 traceRay(Ray r){
 
             if (state.depth > 0)
                 misWeight = PowerHeuristic(scatterSample.pdf, lightSample.pdf);
-            radiance += misWeight * lightSample.emission * throughput;
+            radiance += misWeight * lightSample.emission * throughput; // direct light from the emitter
 
             break;
         }
 
-
         if(state.depth == maxDepth)
             break;
-            //
-        break;
+
+        {
+            surfaceScatter = true;
+
+            // Next event estimation
+            // radiance += DirectLight(r, state, true) * throughput;
+
+            // Sample BSDF for color and outgoing direction
+            scatterSample.f = DisneySample(state, -r.direction, state.ffnormal, scatterSample.L, scatterSample.pdf);
+            if (scatterSample.pdf > 0.0)
+                throughput *= scatterSample.f / scatterSample.pdf;
+            else
+                break;
+        }
+
+        r.direction = scatterSample.L;
+        r.origin = state.fhp + r.direction * EPS;
+       
     }
-
-    radiance +=debugger;
     return vec4(radiance, alpha);
-
 }

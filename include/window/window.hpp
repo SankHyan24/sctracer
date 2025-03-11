@@ -83,12 +83,11 @@ namespace scTracer::Window
                 if (!mUseCPU)
                     mRenderer->update(); // only for gpu to update gpu data
 
-                glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+                glClearColor(0.00f, 0.0f, 0.00f, 1.00f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 ImGui::NewFrame();
                 __updateImguiWindow();
-                std::cout << "frame ";
                 if (!mUseCPU)
                 {
                     mRenderer->render(); // render gpu and show on the screen
@@ -103,7 +102,6 @@ namespace scTracer::Window
                     glViewport(0, 0, mRenderer->windowSize.x, mRenderer->windowSize.y);
                     mRenderer->showCPU(mCPURenderer);
                 }
-                std::cout << "rendered" << std::endl;
                 ImGui::Render();
 
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -15,11 +15,11 @@ vec3 Tonemap(in vec3 c, float limit)
 
 void main() {
     vec4 col = texture(pathTraceTexture, TexCoords) * invSampleCounter;
+    // vec4 col = texture(pathTraceTexture, TexCoords);
     vec3 color = col.rgb;
     float alpha = col.a;
 
     color = Tonemap(color, 1.5);
     color = pow(color, vec3(1.0 / 2.2));
     outCol = vec4(color, 1.0);
-
 }
