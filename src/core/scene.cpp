@@ -137,7 +137,7 @@ namespace scTracer::Core
         for (int i = 0; i < lights.size(); i++)
         {
             std::cout << "[" << i << "]" << std::endl;
-            lights[i].printDebugInfo();
+            // lights[i].printDebugInfo();
         }
     }
 

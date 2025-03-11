@@ -1,14 +1,15 @@
 #pragma once
+// #pragma pack(1)
 #include <iostream>
 #include <glm/glm.hpp>
 
-namespace scTracer::Core {
+namespace scTracer::Core
+{
 
     const std::string LightTypeStrings[] = {
         "RectLight",
         "SphereLight",
-        "DistantLight"
-    };
+        "DistantLight"};
 
     enum LightType
     {
@@ -17,19 +18,20 @@ namespace scTracer::Core {
         DistantLight
     };
 
-    struct Light
+#pragma pack(push, 1)
+    class Light
     {
+    public:
         glm::vec3 position;
         glm::vec3 emission;
-        // uv direction
         glm::vec3 u;
         glm::vec3 v;
+        float radius{0.0f};
+        float area{0.0f};
+        float type{0.0f};
 
-        float radius{ 0.0f };
-        float area{ 0.0f };
-        LightType type;
-
-        void printDebugInfo() {
+        void printDebugInfo()
+        {
             std::cout << "Light Info" << std::endl;
             std::cout << "position: " << position.x << " " << position.y << " " << position.z << std::endl;
             std::cout << "emission: " << emission.x << " " << emission.y << " " << emission.z << std::endl;
@@ -37,9 +39,8 @@ namespace scTracer::Core {
             std::cout << "v: " << v.x << " " << v.y << " " << v.z << std::endl;
             std::cout << "radius: " << radius << std::endl;
             std::cout << "area: " << area << std::endl;
-            std::cout << "type: " << LightTypeStrings[static_cast<int>(type)] << std::endl;
+            std::cout << "type: " << LightTypeStrings[int(type)] << "       type: " << type << std::endl;
         }
     };
-
-
+#pragma pack(pop)
 } // namespace scTracer::Core

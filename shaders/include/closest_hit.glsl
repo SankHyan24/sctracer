@@ -26,6 +26,60 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
 {
     float t = INF;
     float d;
+    // intersect with light
+    for (int i = 0; i < numOfLights; i++)
+    {
+        // Fetch light Data
+        vec3 position = texelFetch(lightsTex, ivec2(i * 5 + 0, 0), 0).xyz; 
+        vec3 emission = texelFetch(lightsTex, ivec2(i * 5 + 1, 0), 0).xyz;
+        vec3 u        = texelFetch(lightsTex, ivec2(i * 5 + 2, 0), 0).xyz; 
+        vec3 v        = texelFetch(lightsTex, ivec2(i * 5 + 3, 0), 0).xyz;
+        vec3 params   = texelFetch(lightsTex, ivec2(i * 5 + 4, 0), 0).xyz;
+        float radius  = params.x;
+        float area    = params.y;
+        float type    = params.z;
+        
+        if (type == QUAD_LIGHT)
+        {
+            vec3 normal = normalize(cross(u, v));
+            if (dot(normal, r.direction) > 0.) // Hide backfacing quad light
+                continue;
+            
+            vec4 plane = vec4(normal, dot(normal, position));
+            u *= 1.0f / dot(u, u);
+            v *= 1.0f / dot(v, v);
+
+            d = RectIntersect(position, u, v, plane, r);
+            if (d < 0.)
+                d = INF;
+            if (d < t)
+            {
+                t = d;
+                float cosTheta = dot(-r.direction, normal);
+                lightSample.pdf = (t * t) / (area * cosTheta);
+                lightSample.emission = emission;
+                state.isEmitter = true;
+            }
+        }
+
+        if (type == SPHERE_LIGHT)
+        {
+            debugger = vec3(1.2,0.2,0.2);
+            d = SphereIntersect(radius, position, r);
+            if (d < 0.)
+                d = INF;
+            if (d < t)
+            {
+                t = d;
+                vec3 hitPt = r.origin + t * r.direction;
+                float cosTheta = dot(-r.direction, normalize(hitPt - position));
+                // TODO: Fix this. Currently assumes the light will be hit only from the outside
+                lightSample.pdf = (t * t) / (area * cosTheta * 0.5);
+                lightSample.emission = emission;
+                state.isEmitter = true;
+            }
+        }
+    }
 
     // Intersect BVH and tris
     int stack[64];
@@ -60,7 +114,6 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
         
         if (leaf > 0) // Leaf node of BLAS
         {
-            debugger += vec3(0.,0.,0.2);
             for (int i = 0; i < rightIndex; i++) // Loop through tris
             {
                 ivec3 vertIndices = ivec3(texelFetch(vertexIndicesTex, leftIndex + i).xyz);
@@ -105,8 +158,6 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
         }
         else if (leaf < 0) // Leaf node of TLAS
         {
-            debugger += vec3(0.,0.2,0);
-
             vec4 r1 = texelFetch(transformsTex, ivec2((-leaf - 1) * 4 + 0, 0), 0).xyzw;
             vec4 r2 = texelFetch(transformsTex, ivec2((-leaf - 1) * 4 + 1, 0), 0).xyzw;
             vec4 r3 = texelFetch(transformsTex, ivec2((-leaf - 1) * 4 + 2, 0), 0).xyzw;
@@ -126,8 +177,6 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
         }
         else
         {
-            debugger += vec3(0.2,0.,0); 
-
             leftHit  = AABBIntersect(texelFetch(BVH, leftIndex  * 3 + 0).xyz, texelFetch(BVH, leftIndex  * 3 + 1).xyz, rTrans);
             rightHit = AABBIntersect(texelFetch(BVH, rightIndex * 3 + 0).xyz, texelFetch(BVH, rightIndex * 3 + 1).xyz, rTrans);
 

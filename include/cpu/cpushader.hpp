@@ -12,9 +12,9 @@ namespace scTracer::CPU
 #define EPS 0.0003
 #define INF 1000000.0
 
-#define QUAD_LIGHT 0
-#define SPHERE_LIGHT 1
-#define DISTANT_LIGHT 2
+#define QUAD_LIGHT 0.f
+#define SPHERE_LIGHT 1.f
+#define DISTANT_LIGHT 2.f
 
 #define ALPHA_MODE_OPAQUE 0
 #define ALPHA_MODE_BLEND 1

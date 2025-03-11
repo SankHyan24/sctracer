@@ -41,6 +41,12 @@ void GetMaterial(inout State state, in Ray r)
     mat.anisotropic        = param1.w;
     mat.emission           = param2.rgb;
 
+    // if(mat.baseColor.x == 0.14)
+    // {
+    //     state.isEmitter = true;
+    //     mat.emission           = vec3(11.0);
+    // }
+
     mat.metallic           = param3.x;
     mat.roughness          = max(param3.y, 0.001);
     mat.subsurface         = param3.z;
@@ -141,12 +147,25 @@ vec4 traceRay(Ray r){
         GetMaterial(state, r);
         radiance += state.mat.emission * throughput;
 
+        if (state.isEmitter)
+        {
+            float misWeight = 1.0;
+
+            if (state.depth > 0)
+                misWeight = PowerHeuristic(scatterSample.pdf, lightSample.pdf);
+            radiance += misWeight * lightSample.emission * throughput;
+
+            break;
+        }
+
 
         if(state.depth == maxDepth)
             break;
+            //
+        break;
     }
 
-    // radiance +=debugger;
+    radiance +=debugger;
     return vec4(radiance, alpha);
 
 }

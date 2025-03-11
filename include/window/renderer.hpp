@@ -129,7 +129,7 @@ namespace scTracer::Window
         // instances
         GLuint transformsTex;
         // for lights
-        GLuint lightTex;
+        GLuint lightsTex;
         // for textures
         GLuint textureMapsArrayTex;
         // for envmap
@@ -194,9 +194,9 @@ namespace scTracer::Window
             __loadSceneLists();
             __loadScene();
             __initGPUDateBuffers();
+            mQuad = new Quad();
             __initFBOs();
             __loadShaders();
-            mQuad = new Quad();
             Utils::glUtils::checkError("RenderGPU::init");
         }
         void render()
@@ -266,14 +266,16 @@ namespace scTracer::Window
                 return;
             if (mScene->instancesDirty)
             {
+
                 mScene->instancesDirty = false;
                 // Update transforms
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformsTex);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(glm::mat4) / sizeof(float) / 4 * mScene->transforms.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->transforms[0]);
-
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.materialTex);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materialDatas.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materialDatas[0]);
 
+                glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightsTex);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, sizeof(Core::Light) / sizeof(float) / 3 * mScene->lights.size(), 1, 0, GL_RGB, GL_FLOAT, &mScene->lights[0]);
                 int index = mScene->bvhFlattor.topLevelIndex;
                 int offset = sizeof(BVH::BVHFlattor::FlatNode) * index;
                 int size = sizeof(BVH::BVHFlattor::FlatNode) * (mScene->bvhFlattor.flattenedNodes.size() - index);
@@ -491,17 +493,16 @@ namespace scTracer::Window
             // Create texture for lights
             if (mScene->lights.size() > 0)
             {
-                glGenTextures(1, &mRenderFrameBuffers.lightTex);
-                glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightTex);
+                glGenTextures(1, &mRenderFrameBuffers.lightsTex);
+                glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightsTex);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, sizeof(Core::Light) / sizeof(float) / 3 * mScene->lights.size(), 1, 0, GL_RGB, GL_FLOAT, &mScene->lights[0]);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glBindTexture(GL_TEXTURE_2D, 0);
             }
 
             // Create texture for scene textures
             // envmap
-            // TODO
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHTex);
             glActiveTexture(GL_TEXTURE2);
@@ -517,13 +518,7 @@ namespace scTracer::Window
             glActiveTexture(GL_TEXTURE7);
             glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformsTex);
             glActiveTexture(GL_TEXTURE8);
-            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightTex);
-
-            // glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
-            // glActiveTexture(GL_TEXTURE9);
-            // glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapTex);
-            // glActiveTexture(GL_TEXTURE10);
-            // glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapCDFTex);
+            glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightsTex);
 
             std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
         }

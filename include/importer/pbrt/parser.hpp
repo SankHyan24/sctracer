@@ -414,6 +414,7 @@ namespace scTracer::Importer::Pbrt
             if (lightShapeTypeString.find("trianglemesh") != std::string::npos)
             {
                 light.type = Core::LightType::RectLight;
+                light.type = float(Core::LightType::RectLight);
                 std::vector<glm::vec3> positions;
                 for (; lightDetailsIndex < lightDetails.size(); lightDetailsIndex++)
                     if (lightDetails[lightDetailsIndex].find("point3 P") != std::string::npos)
@@ -444,6 +445,7 @@ namespace scTracer::Importer::Pbrt
             else if (lightShapeTypeString.find("sphere") != std::string::npos)
             {
                 light.type = Core::LightType::SphereLight;
+                light.type = float(Core::LightType::SphereLight);
                 for (; lightDetailsIndex < lightDetails.size(); lightDetailsIndex++)
                     if (lightDetails[lightDetailsIndex].find("float radius") != std::string::npos)
                     {
