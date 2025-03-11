@@ -160,7 +160,7 @@ namespace scTracer::CPU
                 }
                 break;
             }
-            radiance = debuger;
+            // radiance += debuger;
             return glm::vec4(radiance, alpha);
         }
 

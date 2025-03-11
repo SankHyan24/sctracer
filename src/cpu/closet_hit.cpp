@@ -41,9 +41,9 @@ namespace scTracer::CPU
                 debugger += glm::vec3(0., 0., 0.2);
                 for (int i = 0; i < rightIndex; i++) // Loop through tris
                 {
-                    glm::ivec3 vertIndices = glm::ivec3(mScene->sceneTriIndices[leftIndex + i * 3 + 0],
-                                                        mScene->sceneTriIndices[leftIndex + i * 3 + 1],
-                                                        mScene->sceneTriIndices[leftIndex + i * 3 + 2]);
+                    glm::ivec3 vertIndices = glm::ivec3(mScene->sceneTriIndices[(leftIndex + i) * 3 + 0],
+                                                        mScene->sceneTriIndices[(leftIndex + i) * 3 + 1],
+                                                        mScene->sceneTriIndices[(leftIndex + i) * 3 + 2]);
                     glm::vec4 v0 = glm::vec4(mScene->sceneVertices[vertIndices.x], mScene->sceneMeshUvs[vertIndices.x].x);
                     glm::vec4 v1 = glm::vec4(mScene->sceneVertices[vertIndices.y], mScene->sceneMeshUvs[vertIndices.y].x);
                     glm::vec4 v2 = glm::vec4(mScene->sceneVertices[vertIndices.z], mScene->sceneMeshUvs[vertIndices.z].x);
@@ -148,6 +148,11 @@ namespace scTracer::CPU
                 rTrans.direction = r.direction;
             }
         }
+        if (t == INF)
+            return false;
+        return true;
+        state.hitDist = t;
+        state.fhp = r.origin + r.direction * t;
 
         return false;
     }

@@ -452,7 +452,7 @@ namespace scTracer::Window
             glBufferData(GL_TEXTURE_BUFFER, sizeof(int) * mScene->sceneTriIndices.size(), &mScene->sceneTriIndices[0], GL_STATIC_DRAW);
             glGenTextures(1, &mRenderFrameBuffers.vertexIndicesTex);
             glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.vertexIndicesTex);
-            glTexBuffer(GL_TEXTURE_BUFFER, GL_R32I, mRenderFrameBuffers.vertexIndicesBuffer);
+            glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32I, mRenderFrameBuffers.vertexIndicesBuffer);
             // Create buffer and texture for vertices
             glGenBuffers(1, &mRenderFrameBuffers.vertexBuffer);
             glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.vertexBuffer);
