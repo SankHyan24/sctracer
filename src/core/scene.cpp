@@ -73,10 +73,10 @@ namespace scTracer::Core
             for (int j = 0; j < numIndex; j++)
             {
                 int index = triIndices[j];
-                int v1 = meshes[i]->indices[index].x;
-                int v2 = meshes[i]->indices[index].y;
-                int v3 = meshes[i]->indices[index].z;
-                sceneTriIndices.push_back(v1);
+                int v1 = meshes[i]->indices[index].x + vertexCount;
+                int v2 = meshes[i]->indices[index].y + vertexCount;
+                int v3 = meshes[i]->indices[index].z + vertexCount;
+                sceneTriIndices.push_back(v1); // from tri index to global vert index
                 sceneTriIndices.push_back(v2);
                 sceneTriIndices.push_back(v3);
             }

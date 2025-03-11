@@ -176,7 +176,6 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
     // No intersections
     if (t == INF)
         return false;
-    return true;
 
     state.hitDist = t;
     state.fhp = r.origin + r.direction * t;

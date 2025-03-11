@@ -136,10 +136,10 @@ vec4 traceRay(Ray r){
             break;
         else{ 
             radiance =vec3(1.0);
-            break;}
+        break;}
     }
 
-    radiance =debugger;
+    // radiance +=debugger;
     return vec4(radiance, alpha);
 
 }
