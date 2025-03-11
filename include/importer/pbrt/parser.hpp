@@ -18,6 +18,7 @@ namespace scTracer::Importer::Pbrt
             "Film",
             "Integrator",
             "Transform",
+            "Sampler",
             "WorldBegin",
             "MakeNamedMaterial",
             "NamedMaterial",
@@ -31,6 +32,7 @@ namespace scTracer::Importer::Pbrt
             Film,
             Integrator,
             Transform,
+            Sampler,
             WorldBegin,
             MakeNamedMaterial,
             NamedMaterial,
@@ -90,6 +92,10 @@ namespace scTracer::Importer::Pbrt
             {
                 return BlockType::AttributeEnd;
             }
+            if (firstLine.find("Sampler") != std::string::npos)
+            {
+                return BlockType::Sampler;
+            }
             return BlockType::Unsupported;
         }
         std::vector<std::string> mContent;
@@ -130,6 +136,8 @@ namespace scTracer::Importer::Pbrt
         {
             assert(mBType == BlockType::Integrator);
             std::string integratorString = mContent[1];
+            if (integratorString.find("integer maxdepth") == std::string::npos)
+                return 0;
             integratorString = integratorString.substr(integratorString.find("[") + 1, integratorString.find("]") - integratorString.find("[") - 1);
             return std::stoi(integratorString);
         }
@@ -462,6 +470,16 @@ namespace scTracer::Importer::Pbrt
             return light;
         }
 
+        int getMaxSamples()
+        {
+            assert(mBType == BlockType::Sampler);
+            std::string samplerString = mContent[1];
+            if (samplerString.find("integer pixelsamples") == std::string::npos)
+                return 64;
+            samplerString = samplerString.substr(samplerString.find("[") + 1, samplerString.find("]") - samplerString.find("[") - 1);
+            return std::stoi(samplerString);
+        }
+
     private:
     };
 
@@ -528,6 +546,7 @@ namespace scTracer::Importer::Pbrt
             glm::mat4 camera_transform;
             float camera_fov{19.5};
             int max_bounce_depth{1024};
+            int max_samples{64};
             int resolution_x{800};
             int resolution_y{600};
             std::string output_file_name;
@@ -554,6 +573,9 @@ namespace scTracer::Importer::Pbrt
                     resolution_y = resolution[1];
                     break;
                 }
+                case pbrtSceneBlock::BlockType::Sampler:
+                    max_samples = block.getMaxSamples();
+                    break;
                 case pbrtSceneBlock::BlockType::WorldBegin:
                     world_begin = true;
                     break;
@@ -616,7 +638,7 @@ namespace scTracer::Importer::Pbrt
             }
             assert(world_begin && "WorldBegin not found");
             assert(attribute_begin && "AttributeEnd not found");
-            auto scene = new Core::Scene(Core::Camera(camera_transform, camera_fov), Core::SceneSettings(resolution_x, resolution_y, max_bounce_depth));
+            auto scene = new Core::Scene(Core::Camera(camera_transform, camera_fov), Core::SceneSettings(resolution_x, resolution_y, max_bounce_depth, max_samples));
             scene->materials = materials;
             int meshCnter{0};
             for (auto &mesh : meshes)
