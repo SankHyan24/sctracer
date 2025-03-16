@@ -69,7 +69,7 @@ namespace scTracer::Core
         {
             if (mType == MaterialType::Diffuse)
             {
-                roughness = 1.0f;
+                roughness = 0.5f;
                 metallic = 0.0f;
             }
             else if (mType == MaterialType::Conductor)

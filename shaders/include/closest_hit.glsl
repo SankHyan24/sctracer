@@ -73,7 +73,6 @@ bool ClosestHit(Ray r, inout State state, inout LightSampleRec lightSample,inout
                 t = d;
                 vec3 hitPt = r.origin + t * r.direction;
                 float cosTheta = dot(-r.direction, normalize(hitPt - position));
-                // TODO: Fix this. Currently assumes the light will be hit only from the outside
                 lightSample.pdf = (t * t) / (area * cosTheta * 0.5);
                 lightSample.emission = emission;
                 state.isEmitter = true;

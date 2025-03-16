@@ -113,7 +113,7 @@ vec3 DirectLight(in Ray r, in State state, bool isSurface)
 {
     vec3 Ld = vec3(0.0);
     vec3 Li = vec3(0.0);
-    vec3 scatterPos = state.fhp + state.normal * EPS;
+    vec3 scatterPos = state.fhp + state.ffnormal * EPS;
 
     ScatterSampleRec scatterSample;
 
@@ -197,7 +197,7 @@ vec4 traceRay(Ray r){
         GetMaterial(state, r);
         // radiance = state.mat.baseColor;
         // break;
-        radiance += state.mat.emission * throughput; // emission from the surface
+        // radiance += state.mat.emission * throughput; // emission from the surface
 
         // if(false)
         if (state.isEmitter)
@@ -218,7 +218,7 @@ vec4 traceRay(Ray r){
             surfaceScatter = true;
 
             // Next event estimation
-            radiance += DirectLight(r, state, true) * throughput;  // TODO: this term works wrongly
+            radiance += DirectLight(r, state, true) * throughput;
 
             // Sample BSDF for color and outgoing direction
             scatterSample.f = DisneySample(state, -r.direction, state.ffnormal, scatterSample.L, scatterSample.pdf);

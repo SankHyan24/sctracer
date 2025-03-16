@@ -19,7 +19,7 @@ void main() {
     vec3 color = col.rgb;
     float alpha = col.a;
 
-    color = Tonemap(color, 1.5); // tonmapping
+    // color = Tonemap(color, 1.5); // tonmapping
     color = pow(color, vec3(1.0 / 2.2)); // gamma correction
     outCol = vec4(color, 1.0);
 }
