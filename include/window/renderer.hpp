@@ -171,7 +171,7 @@ namespace scTracer::Window
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
             glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
             glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-            glfwWindowHint(GLFW_DEPTH_BITS, 24);
+            glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE); // for renderdoc debug
         }
 
         ~GLFWManager()
@@ -274,12 +274,10 @@ namespace scTracer::Window
             if (mScene->instancesDirty)
             {
                 mScene->instancesDirty = false;
-                // Update transforms
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformsTex);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(glm::mat4) / sizeof(float) / 4 * mScene->transforms.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->transforms[0]);
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.materialTex);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(Core::Material) / sizeof(float) / 4 * mScene->materialDatas.size(), 1, 0, GL_RGBA, GL_FLOAT, &mScene->materialDatas[0]);
-
                 glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightsTex);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, sizeof(Core::Light) / sizeof(float) / 3 * mScene->lights.size(), 1, 0, GL_RGB, GL_FLOAT, &mScene->lights[0]);
                 int index = mScene->bvhFlattor.topLevelIndex;
@@ -310,8 +308,8 @@ namespace scTracer::Window
                 frameCounter++;
                 numOfSamples++;
                 currentBuffer = 1 - currentBuffer;
-                // glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.outputFBO);
-                // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.outputTexture[currentBuffer], 0);
+                glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.outputFBO);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.outputTexture[currentBuffer], 0);
             }
 
             // Update uniforms
@@ -527,6 +525,8 @@ namespace scTracer::Window
             glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformsTex);
             glActiveTexture(GL_TEXTURE8);
             glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightsTex);
+            glActiveTexture(GL_TEXTURE9);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
 
             std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
         }

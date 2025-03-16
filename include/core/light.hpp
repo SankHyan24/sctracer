@@ -18,7 +18,6 @@ namespace scTracer::Core
         DistantLight
     };
 
-#pragma pack(push, 1)
     class Light
     {
     public:
@@ -42,5 +41,4 @@ namespace scTracer::Core
             std::cout << "type: " << LightTypeStrings[int(type)] << "       type: " << type << std::endl;
         }
     };
-#pragma pack(pop)
 } // namespace scTracer::Core
