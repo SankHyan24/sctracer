@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
-
+#include <tuple>
 #include <core/scene.hpp>
 
 namespace scTracer::Importer::Pbrt
@@ -341,14 +341,17 @@ namespace scTracer::Importer::Pbrt
 
         Core::Mesh *getMeshFromOtherFile() {}
 
-        Core::Light getLight()
+        std::tuple<Core::Light, std::string, Core::Mesh *> getLight()
         {
             assert(mBType == BlockType::AttributeBegin);
             Core::Light light;
-            std::string lightMatTypeline; // @sc: only for diffuse now
             std::string materialName;
+            Core::Mesh *mesh = new Core::Mesh();
+
+            std::string materialTypeName;
+            std::string lightMatTypeline; // @sc: only for diffuse now
             lightMatTypeline = mContent[1];
-            materialName = lightMatTypeline.substr(lightMatTypeline.find("\"") + 1, lightMatTypeline.find("\"", lightMatTypeline.find("\"") + 1) - lightMatTypeline.find("\"") - 1);
+            materialTypeName = lightMatTypeline.substr(lightMatTypeline.find("\"") + 1, lightMatTypeline.find("\"", lightMatTypeline.find("\"") + 1) - lightMatTypeline.find("\"") - 1);
             lightMatTypeline = lightMatTypeline.substr(0, lightMatTypeline.find("\"") - 1);
 
             std::vector<std::string> lightDetails;
@@ -374,6 +377,10 @@ namespace scTracer::Importer::Pbrt
                 if (mContent[i].find("NamedMaterial") != std::string::npos)
                 {
                     index_lightShapeBegin = true;
+                    materialName = mContent[i];
+                    materialName = materialName.substr(materialName.find("\"") + 1, materialName.find("\"", materialName.find("\"") + 1) - materialName.find("\"") - 1);
+                    materialName = materialName.substr(0, materialName.find("\"") - 1);
+                    std::cout << "materialName: " << materialName << std::endl;
                 }
                 if (index_lightShapeBegin)
                     lightDetails.push_back(mContent[i]);
@@ -424,11 +431,32 @@ namespace scTracer::Importer::Pbrt
                 light.type = Core::LightType::RectLight;
                 light.type = float(Core::LightType::RectLight);
                 std::vector<glm::vec3> positions;
+                std::vector<glm::vec2> uvs;
+                std::vector<glm::vec3> normals;
+                std::vector<glm::ivec3> indices;
                 for (; lightDetailsIndex < lightDetails.size(); lightDetailsIndex++)
+                {
+                    std::cout << "hello" << std::endl;
                     if (lightDetails[lightDetailsIndex].find("point3 P") != std::string::npos)
                     {
-                        std::string positionString = lightDetails[lightDetailsIndex];
+                        std::string positionString;
+                        int thisIndex = lightDetailsIndex;
+                        for (thisIndex; thisIndex < lightDetails.size(); thisIndex++)
+                        {
+                            positionString += lightDetails[thisIndex];
+                            if (lightDetails[thisIndex].find("]") != std::string::npos)
+                                break;
+                        }
                         positionString = positionString.substr(positionString.find("[") + 1, positionString.find("]") - positionString.find("[") - 1);
+                        for (int i = 0; i < positionString.size(); i++) // erease new lines and extra spaces
+                            if (positionString[i] == '\n' || positionString[i] == '\r')
+                                positionString[i] = ' ';
+                        for (int i = 0; i < positionString.size(); i++)
+                            if (positionString[i] == ' ' && positionString[i + 1] == ' ')
+                            {
+                                positionString.erase(i, 1);
+                                i--;
+                            }
                         std::vector<float> positionValues;
                         std::string value;
                         for (int i = 0; i < positionString.size(); i++)
@@ -439,16 +467,124 @@ namespace scTracer::Importer::Pbrt
                             }
                             else
                                 value += positionString[i];
-                        // get the positions
+                        assert(positionValues.size() % 3 == 0 && "Position values should be multiple of 3");
                         for (int i = 0; i < positionValues.size(); i += 3)
                             positions.push_back(glm::vec3(positionValues[i], positionValues[i + 1], positionValues[i + 2]));
-                        break;
+                        lightDetailsIndex = thisIndex;
                     }
+                    if (lightDetails[lightDetailsIndex].find("point2 uv") != std::string::npos)
+                    {
+                        std::string uvString;
+                        int thisIndex = lightDetailsIndex;
+                        for (thisIndex; thisIndex < lightDetails.size(); thisIndex++)
+                        {
+                            uvString += lightDetails[thisIndex];
+                            if (lightDetails[thisIndex].find("]") != std::string::npos)
+                                break;
+                        }
+                        uvString = uvString.substr(uvString.find("[") + 1, uvString.find("]") - uvString.find("[") - 1);
+                        for (int i = 0; i < uvString.size(); i++) // erease new lines and extra spaces
+                            if (uvString[i] == '\n' || uvString[i] == '\r')
+                                uvString[i] = ' ';
+                        for (int i = 0; i < uvString.size(); i++)
+                            if (uvString[i] == ' ' && uvString[i + 1] == ' ')
+                            {
+                                uvString.erase(i, 1);
+                                i--;
+                            }
+                        std::vector<float> uvValues;
+                        std::string value;
+                        for (int i = 0; i < uvString.size(); i++)
+                            if (uvString[i] == ' ' && value.size() > 0)
+                            {
+                                uvValues.push_back(std::stof(value));
+                                value.clear();
+                            }
+                            else
+                                value += uvString[i];
+                        assert(uvValues.size() % 2 == 0 && "UV values should be multiple of 2");
+                        for (int i = 0; i < uvValues.size(); i += 2)
+                            uvs.push_back(glm::vec2(uvValues[i], uvValues[i + 1]));
+                        lightDetailsIndex = thisIndex;
+                    }
+                    if (lightDetails[lightDetailsIndex].find("normal N") != std::string::npos)
+                    {
+                        std::string normalString;
+                        int thisIndex = lightDetailsIndex;
+                        for (thisIndex; thisIndex < lightDetails.size(); thisIndex++)
+                        {
+                            normalString += lightDetails[thisIndex];
+                            if (lightDetails[thisIndex].find("]") != std::string::npos)
+                                break;
+                        }
+                        normalString = normalString.substr(normalString.find("[") + 1, normalString.find("]") - normalString.find("[") - 1);
+                        for (int i = 0; i < normalString.size(); i++) // erease new lines and extra spaces
+                            if (normalString[i] == '\n' || normalString[i] == '\r')
+                                normalString[i] = ' ';
+                        for (int i = 0; i < normalString.size(); i++)
+                            if (normalString[i] == ' ' && normalString[i + 1] == ' ')
+                            {
+                                normalString.erase(i, 1);
+                                i--;
+                            }
+                        std::vector<float> normalValues;
+                        std::string value;
+                        for (int i = 0; i < normalString.size(); i++)
+                            if (normalString[i] == ' ' && value.size() > 0)
+                            {
+                                normalValues.push_back(std::stof(value));
+                                value.clear();
+                            }
+                            else
+                                value += normalString[i];
+                        assert(normalValues.size() % 3 == 0 && "Normal values should be multiple of 3");
+                        for (int i = 0; i < normalValues.size(); i += 3)
+                            normals.push_back(glm::vec3(normalValues[i], normalValues[i + 1], normalValues[i + 2]));
+                    }
+                    if (lightDetails[lightDetailsIndex].find("integer indices") != std::string::npos)
+                    {
+                        std::string indexString;
+                        int thisIndex = lightDetailsIndex;
+                        for (thisIndex; thisIndex < lightDetails.size(); thisIndex++)
+                        {
+                            indexString += lightDetails[thisIndex];
+                            if (lightDetails[thisIndex].find("]") != std::string::npos)
+                                break;
+                        }
+                        indexString = indexString.substr(indexString.find("[") + 1, indexString.find("]") - indexString.find("[") - 1);
+                        for (int i = 0; i < indexString.size(); i++) // erease new lines and extra spaces
+                            if (indexString[i] == '\n' || indexString[i] == '\r')
+                                indexString[i] = ' ';
+                        for (int i = 0; i < indexString.size(); i++)
+                            if (indexString[i] == ' ' && indexString[i + 1] == ' ')
+                            {
+                                indexString.erase(i, 1);
+                                i--;
+                            }
+                        std::vector<int> indexValues;
+                        std::string value;
+                        for (int i = 0; i < indexString.size(); i++)
+                            if (indexString[i] == ' ' && value.size() > 0)
+                            {
+                                indexValues.push_back(std::stoi(value));
+                                value.clear();
+                            }
+                            else
+                                value += indexString[i];
+                        for (int i = 0; i < indexValues.size(); i += 3)
+                            indices.push_back(glm::ivec3(indexValues[i], indexValues[i + 1], indexValues[i + 2]));
+                    }
+                }
                 assert(positions.size() == 4 && "Only support rectangle light now");
                 light.position = positions[0];
                 light.u = positions[1] - positions[0];
                 light.v = positions[3] - positions[0];
                 light.area = glm::length(glm::cross(light.u, light.v));
+
+                mesh->vertices = positions;
+                mesh->uvs = uvs;
+                mesh->normals = normals;
+                mesh->indices = indices;
             }
             else if (lightShapeTypeString.find("sphere") != std::string::npos)
             {
@@ -467,7 +603,7 @@ namespace scTracer::Importer::Pbrt
             }
             else
                 assert(false && "Unsupported light shape type");
-            return light;
+            return std::make_tuple(light, materialName, mesh);
         }
 
         int getMaxSamples()
@@ -624,7 +760,21 @@ namespace scTracer::Importer::Pbrt
                 case pbrtSceneBlock::BlockType::AttributeBegin:
                 {
                     attribute_begin = true;
-                    lights.push_back(block.getLight());
+                    auto result = block.getLight();
+                    std::string materialName = std::get<1>(result);
+                    Core::Mesh *mesh = std::get<2>(result);
+                    lights.push_back(std::get<0>(result));
+                    // create a new instance for the light
+                    currentMaterialIndex = -1;
+                    for (int i = 0; i < materials.size(); i++)
+                        if (materials[i].name == materialName)
+                        {
+                            currentMaterialIndex = i;
+                            break;
+                        }
+                    assert(currentMaterialIndex != -1 && "MaterialRaw not found");
+                    meshes.push_back(mesh);
+                    instances.push_back(Core::Instance(glm::mat4(1.0f), currentMaterialIndex, meshes.size() - 1));
                     break;
                 }
                 case pbrtSceneBlock::BlockType::AttributeEnd:
