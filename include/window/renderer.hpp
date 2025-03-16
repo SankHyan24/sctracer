@@ -398,6 +398,7 @@ namespace scTracer::Window
             mScene = scTracer::Importer::Pbrt::pbrtParser::parse(scenePbrtName);
             if (!mScene->isInitialized())
                 mScene->processScene();
+            Utils::glUtils::checkError("RenderGPU::__loadScene");
         }
         void __loadShaders()
         { // reload = load
@@ -441,6 +442,7 @@ namespace scTracer::Window
             glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
             glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
             mRenderPipeline.PathTracerLowResolution->StopUsing();
+            Utils::glUtils::checkError("RenderGPU::__loadShaders");
         }
         void __initGPUDateBuffers()
         {
@@ -507,6 +509,16 @@ namespace scTracer::Window
                 glBindTexture(GL_TEXTURE_2D, 0);
             }
 
+            // if (!scene->textures.empty())
+            // {
+            glGenTextures(1, &mRenderFrameBuffers.textureMapsArrayTex);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
+            glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 1, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+            // }
+
             // Create texture for scene textures
             // envmap
             glActiveTexture(GL_TEXTURE1);
@@ -529,6 +541,7 @@ namespace scTracer::Window
             glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
 
             std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
+            Utils::glUtils::checkError("RenderGPU::__initGPUDateBuffers");
         }
         void __initFBOs()
         {

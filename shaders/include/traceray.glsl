@@ -195,6 +195,8 @@ vec4 traceRay(Ray r){
             break;
         }
         GetMaterial(state, r);
+        radiance = state.mat.baseColor;
+        break;
         radiance += state.mat.emission * throughput; // emission from the surface
 
         if (state.isEmitter)
@@ -215,7 +217,7 @@ vec4 traceRay(Ray r){
             surfaceScatter = true;
 
             // Next event estimation
-            // radiance += DirectLight(r, state, true) * throughput;
+            radiance += DirectLight(r, state, true) * throughput;  // TODO: this term works wrongly
 
             // Sample BSDF for color and outgoing direction
             scatterSample.f = DisneySample(state, -r.direction, state.ffnormal, scatterSample.L, scatterSample.pdf);
