@@ -120,12 +120,29 @@ namespace scTracer::Window
             ImGui::Text("FPS: %.1f", fps);
             ImGui::Text("Samples: %d", mRenderer->numOfSamples);
             ImGui::Text("is dirty: %d", mRenderer->mScene->isDirty());
-            ImGui::Text("camera info: ");
-            ImGui::Text("position: %.2f %.2f %.2f", mRenderer->mScene->camera.mPosition.x, mRenderer->mScene->camera.mPosition.y, mRenderer->mScene->camera.mPosition.z);
-            ImGui::Text("direction: %.2f %.2f %.2f", mRenderer->mScene->camera.mFront.x, mRenderer->mScene->camera.mFront.y, mRenderer->mScene->camera.mFront.z);
-            // up and right
-            ImGui::Text("up: %.2f %.2f %.2f", mRenderer->mScene->camera.mUp.x, mRenderer->mScene->camera.mUp.y, mRenderer->mScene->camera.mUp.z);
-            ImGui::Text("right: %.2f %.2f %.2f", mRenderer->mScene->camera.mRight.x, mRenderer->mScene->camera.mRight.y, mRenderer->mScene->camera.mRight.z);
+            if (ImGui::CollapsingHeader("Camera"))
+            {
+                ImGui::Text("camera info: ");
+                ImGui::Text("position: %.2f %.2f %.2f", mRenderer->mScene->camera.mPosition.x, mRenderer->mScene->camera.mPosition.y, mRenderer->mScene->camera.mPosition.z);
+                ImGui::Text("direction: %.2f %.2f %.2f", mRenderer->mScene->camera.mFront.x, mRenderer->mScene->camera.mFront.y, mRenderer->mScene->camera.mFront.z);
+                // up and right
+                ImGui::Text("up: %.2f %.2f %.2f", mRenderer->mScene->camera.mUp.x, mRenderer->mScene->camera.mUp.y, mRenderer->mScene->camera.mUp.z);
+                ImGui::Text("right: %.2f %.2f %.2f", mRenderer->mScene->camera.mRight.x, mRenderer->mScene->camera.mRight.y, mRenderer->mScene->camera.mRight.z);
+            }
+
+            // separator
+            ImGui::Separator();
+            ImGui::Text("Save image to file: ");
+            static char filename[128] = "output.png";
+            ImGui::InputText("Filename", filename, IM_ARRAYSIZE(filename));
+            if (ImGui::Button("Save"))
+            {
+                std::string fileName = filename;
+                if (fileName.find(".png") == std::string::npos)
+                    fileName += ".png";
+                mRenderer->saveImage(fileName);
+                std::cerr << Config::LOG_GREEN << "Saved image to [" << fileName << "]" << Config::LOG_RESET << std::endl;
+            }
             ImGui::End();
         }
 

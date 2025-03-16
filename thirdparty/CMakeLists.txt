@@ -4,6 +4,7 @@ add_subdirectory(gl3w)
 # add glfw
 add_subdirectory(glfw)
 target_include_directories(${_EXE_NAME_} PUBLIC "glfw/include")
+target_include_directories(${_EXE_NAME_} PUBLIC "glfw/deps")
 target_link_libraries(${_EXE_NAME_} glfw OpenGL::GL)
 
 # add imgui

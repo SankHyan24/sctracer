@@ -51,18 +51,7 @@ namespace scTracer::Core
         std::cerr << "Flattening BVH for GPU ...";
         bvhFlattor.flatten(sceneBVH, meshes, instances);
         std::cerr << "Done!" << std::endl;
-        // TODO
-        // print flattened BVH to debug
-        // std::cout << "head node index: " << bvhFlattor.topLevelIndex << std::endl;
-        // int idx = 0;
-        // for (auto &node : bvhFlattor.flattenedNodes)
-        // {
-        //     std::cout << "Node: " << idx++ << std::endl;
-        //     std::cout << "Bounds min: " << node.boundsmin.x << " " << node.boundsmin.y << " " << node.boundsmin.z << std::endl;
-        //     std::cout << "Bounds max: " << node.boundsmax.x << " " << node.boundsmax.y << " " << node.boundsmax.z << std::endl;
-        //     std::cout << "LeftRightLeaf: " << node.LeftRightLeaf.x << " " << node.LeftRightLeaf.y << " " << node.LeftRightLeaf.z << std::endl;
-        // }
-        // // prepare vertex data
+
         std::cerr << "Preparing meshes data ...";
         int vertexCount = 0;
         for (int i = 0; i < meshes.size(); i++)
@@ -96,6 +85,7 @@ namespace scTracer::Core
 
         // prepare texture data
         std::cerr << "Preparing textures data ...";
+        // not implemented yet
         std::cerr << "Done!" << std::endl;
 
         initialized = true;
