@@ -24,38 +24,38 @@ namespace scTracer::Core
     class Material
     {
     public:
-        glm::vec3 baseColor;
-        float anisotropic;
+        glm::vec3 baseColor{1.0f, 1.0f, 1.0f};
+        float anisotropic{0.0f};
 
         glm::vec3 emission{0.0f};
         float padding1;
 
-        float metallic;
-        float roughness;
-        float subsurface;
-        float specularTint;
+        float metallic{0.0f};
+        float roughness{0.5f};
+        float subsurface{0.0f};
+        float specularTint{0.0f};
 
-        float sheen;
-        float sheenTint;
-        float clearcoat;
-        float clearcoatGloss;
+        float sheen{0.0f};
+        float sheenTint{0.0f};
+        float clearcoat{0.0f};
+        float clearcoatGloss{0.0f};
 
-        float specTrans;
-        float ior;
-        float mediumType;
-        float mediumDensity;
+        float specTrans{0.0f};
+        float ior{1.5f};
+        float mediumType{0.0f};
+        float mediumDensity{0.0f};
 
-        glm::vec3 mediumColor;
-        float mediumAnisotropy;
+        glm::vec3 mediumColor{1.0f, 1.0f, 1.0f};
+        float mediumAnisotropy{0.0f};
 
-        float baseColorTexId;
-        float metallicRoughnessTexID;
-        float normalmapTexID;
-        float emissionmapTexID;
+        float baseColorTexId{-1.0f};
+        float metallicRoughnessTexID{-1.0f};
+        float normalmapTexID{-1.0f};
+        float emissionmapTexID{-1.0f};
 
-        float opacity;
-        float alphaMode;
-        float alphaCutoff;
+        float opacity{1.0f};
+        float alphaMode{0.0f};
+        float alphaCutoff{0.0f};
         float padding2;
     };
 

@@ -195,10 +195,11 @@ vec4 traceRay(Ray r){
             break;
         }
         GetMaterial(state, r);
-        radiance = state.mat.baseColor;
-        break;
+        // radiance = state.mat.baseColor;
+        // break;
         radiance += state.mat.emission * throughput; // emission from the surface
 
+        // if(false)
         if (state.isEmitter)
         {
             float misWeight = 1.0;
@@ -212,7 +213,7 @@ vec4 traceRay(Ray r){
 
         if(state.depth == maxDepth)
             break;
-
+        // if(false)
         {
             surfaceScatter = true;
 
