@@ -34,12 +34,12 @@ namespace scTracer::Core
         void deleteMeshes();
         void printDebugInfo();
 
-        bool isDirty() const { return dirty; }
-        bool isInitialized() const { return initialized; }
+        inline bool isDirty() const { return dirty; }
+        inline bool isInitialized() const { return initialized; }
 
         bool dirty{true};
-        bool instancesDirty{true};
-        bool envMapDirty{true};
+        bool instancesDirty{false};
+        bool envMapDirty{false};
 
         bool initialized{false};
 

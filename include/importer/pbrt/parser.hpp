@@ -45,7 +45,6 @@ namespace scTracer::Importer::Pbrt
         pbrtSceneBlock(const std::vector<std::string> &content) : mContent(content)
         {
             mBType = getBlockType(mContent[0]);
-            // std::cout << "Block Type: " << blockTypeStrings[static_cast<int>(mBType)] << std::endl;
         }
         ~pbrtSceneBlock() = default;
 
@@ -380,7 +379,6 @@ namespace scTracer::Importer::Pbrt
                     materialName = mContent[i];
                     materialName = materialName.substr(materialName.find("\"") + 1, materialName.find("\"", materialName.find("\"") + 1) - materialName.find("\"") - 1);
                     materialName = materialName.substr(0, materialName.find("\"") - 1);
-                    std::cout << "materialName: " << materialName << std::endl;
                 }
                 if (index_lightShapeBegin)
                     lightDetails.push_back(mContent[i]);
@@ -436,7 +434,6 @@ namespace scTracer::Importer::Pbrt
                 std::vector<glm::ivec3> indices;
                 for (; lightDetailsIndex < lightDetails.size(); lightDetailsIndex++)
                 {
-                    std::cout << "hello" << std::endl;
                     if (lightDetails[lightDetailsIndex].find("point3 P") != std::string::npos)
                     {
                         std::string positionString;
