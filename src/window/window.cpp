@@ -1,5 +1,6 @@
+#include <sstream>
+#include <iomanip>
 #include <window/window.hpp>
-
 namespace scTracer::Window
 {
     Window::Window(bool useGPU) : mWindow(nullptr), mGLManager(std::make_unique<GLFWManager>()), mRenderer(std::make_unique<RenderGPU>(useGPU))
@@ -103,12 +104,23 @@ namespace scTracer::Window
         // update window
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(250, int(250 * (1 + sqrt(5)) / 2)), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Control Panel");
 
-        ImGui::Begin("FPS");
-        float fps = 1.0f / ImGui::GetIO().DeltaTime;
-        ImGui::Text("FPS: %.2f\tSamples: %d", fps, mRenderer->numOfSamples);
-        ImGui::Text("Time: %.3f", mRenderer->timeThisFrame - mRenderer->timeBegin);
-        ImGui::Separator();
+        {
+            float fps = 1.0f / ImGui::GetIO().DeltaTime;
+            ImGui::Text("FPS: %.2f\tspp: %d", fps, mRenderer->numOfSamples);
+        }
+
+        {
+            std::ostringstream oss, oss1;
+            oss << std::fixed << std::setprecision(3) << (mRenderer->timeThisFrame - mRenderer->timeBegin);
+            std::string time_string = "cost " + oss.str() + "s";
+            oss1 << std::fixed << std::setprecision(1) << 1000 * (mRenderer->timeThisFrame - mRenderer->timeBegin) / mRenderer->numOfSamples;
+            if (mRenderer->numOfSamples == mRenderer->mScene->settings.maxSamples)
+                time_string += " (" + oss1.str() + "ms per sample)";
+            ImGui::Text(time_string.c_str());
+            ImGui::Separator();
+        }
 
         if (ImGui::CollapsingHeader("Render Settings"))
         {
