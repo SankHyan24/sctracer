@@ -1,4 +1,4 @@
-#version 450 core
+#version 460 core
 #include "include/uniforms.glsl"
 #include "include/globals.glsl"
 
