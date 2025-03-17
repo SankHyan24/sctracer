@@ -1,3 +1,6 @@
+# add tinyEXR
+add_subdirectory(tinyexr)
+
 # add gl3w
 add_subdirectory(gl3w)
 

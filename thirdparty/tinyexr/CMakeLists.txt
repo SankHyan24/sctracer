@@ -1,0 +1,6 @@
+add_library(miniz)
+target_sources(miniz PRIVATE miniz.c)
+target_include_directories(miniz PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(miniz PUBLIC TINYEXR_USE_STB_ZLIB=1)
+target_link_libraries(${_EXE_NAME_} miniz)
+target_include_directories(${_EXE_NAME_} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
