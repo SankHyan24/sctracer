@@ -49,12 +49,14 @@ namespace scTracer::Window
         GPU::Shader *pathTracerLowResolutionShader{nullptr};
         GPU::Shader *imageMapShader{nullptr};
         GPU::Shader *toneMapShader{nullptr};
+        GPU::Shader *accumulateShader{nullptr};
         // programs
         GPU::Program *Debugger{nullptr};
         GPU::Program *PathTracer{nullptr};
         GPU::Program *PathTracerLowResolution{nullptr};
         GPU::Program *ImageMap{nullptr};
         GPU::Program *ToneMap{nullptr};
+        GPU::Program *Accumulate{nullptr};
     };
 
     struct RenderFrameBuffers
@@ -95,6 +97,9 @@ namespace scTracer::Window
 
         GLuint accumulationFBO;
         GLuint accumulationTexture;
+
+        GLuint accumulatedFBO;
+        GLuint accumulatedTexture;
 
         GLuint outputFBO;
         GLuint outputTexture[2];

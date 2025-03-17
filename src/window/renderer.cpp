@@ -13,6 +13,7 @@ namespace scTracer::Window
         pathTracerShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "pathtracer.glsl"), GL_FRAGMENT_SHADER);
         pathTracerLowResolutionShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "pathtracer_low_resolution.glsl"), GL_FRAGMENT_SHADER);
         imageMapShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "imagemap.glsl"), GL_FRAGMENT_SHADER);
+        accumulateShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "accumulate.glsl"), GL_FRAGMENT_SHADER);
         toneMapShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "tonemap.glsl"), GL_FRAGMENT_SHADER);
         // debug shaders
         debuggerVertShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "debugger.vert"), GL_VERTEX_SHADER);
@@ -26,6 +27,7 @@ namespace scTracer::Window
         PathTracer = new scTracer::GPU::Program({vertexShader, pathTracerShader});
         PathTracerLowResolution = new scTracer::GPU::Program({vertexShader, pathTracerLowResolutionShader});
         ImageMap = new scTracer::GPU::Program({vertexShader, imageMapShader});
+        Accumulate = new scTracer::GPU::Program({vertexShader, accumulateShader});
         ToneMap = new scTracer::GPU::Program({vertexShader, toneMapShader});
     }
 
@@ -35,6 +37,7 @@ namespace scTracer::Window
         delete PathTracer;
         delete PathTracerLowResolution;
         delete ImageMap;
+        delete Accumulate;
         delete ToneMap;
         load();
     }
@@ -47,6 +50,7 @@ namespace scTracer::Window
         delete pathTracerShader;
         delete pathTracerLowResolutionShader;
         delete imageMapShader;
+        delete accumulateShader;
         delete toneMapShader;
         init();
     }
@@ -60,12 +64,14 @@ namespace scTracer::Window
         delete pathTracerShader;
         delete pathTracerLowResolutionShader;
         delete imageMapShader;
+        delete accumulateShader;
         delete toneMapShader;
         // delete programs
         delete Debugger;
         delete PathTracer;
         delete PathTracerLowResolution;
         delete ImageMap;
+        delete Accumulate;
         delete ToneMap;
     }
 
@@ -121,10 +127,15 @@ namespace scTracer::Window
             glBindTexture(GL_TEXTURE_2D, mRenderFBOs.pathTracerTexture);
             mQuad->draw(mRenderPipeline.ImageMap);
 
+            glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.accumulatedFBO);
+            glViewport(0, 0, windowSize.x, windowSize.y);
+            glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulationTexture);
+            mQuad->draw(mRenderPipeline.Accumulate);
+
             glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.outputFBO);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.outputTexture[currentBuffer], 0);
             glViewport(0, 0, windowSize.x, windowSize.y);
-            glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulationTexture);
+            glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulatedTexture);
             mQuad->draw(mRenderPipeline.ToneMap);
         }
 
@@ -327,10 +338,10 @@ namespace scTracer::Window
         thisProgram = mRenderPipeline.PathTracerLowResolution->get();
         mRenderPipeline.PathTracerLowResolution->StopUsing();
 
-        mRenderPipeline.ToneMap->Use();
-        thisProgram = mRenderPipeline.ToneMap->get();
+        mRenderPipeline.Accumulate->Use();
+        thisProgram = mRenderPipeline.Accumulate->get();
         glUniform1f(glGetUniformLocation(thisProgram, "invSampleCounter"), 1.0f / (numOfSamples));
-        mRenderPipeline.ToneMap->StopUsing();
+        mRenderPipeline.Accumulate->StopUsing();
 
         Utils::glUtils::checkError("RenderGPU::update");
     }
@@ -561,6 +572,16 @@ namespace scTracer::Window
         glBindTexture(GL_TEXTURE_2D, 0);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.accumulationTexture, 0);
 
+        glGenFramebuffers(1, &mRenderFBOs.accumulatedFBO);
+        glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.accumulatedFBO);
+        glGenTextures(1, &mRenderFBOs.accumulatedTexture);
+        glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulatedTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowSize.x, windowSize.y, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.accumulatedTexture, 0);
+
         glGenFramebuffers(1, &mRenderFBOs.outputFBO);
         glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.outputFBO);
         for (int i = 0; i < 2; i++)
@@ -600,7 +621,7 @@ namespace scTracer::Window
     void RenderGPU::__captureFrame(float *buffer)
     {
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
+        glBindTexture(GL_TEXTURE_2D, mRenderFBOs.accumulatedTexture);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, buffer);
         Utils::glUtils::checkError("RenderGPU::__captureFrame");
     }
