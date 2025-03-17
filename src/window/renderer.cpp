@@ -94,9 +94,9 @@ namespace scTracer::Window
         glfwTerminate();
     }
 
-    RenderGPU::RenderGPU()
+    RenderGPU::RenderGPU(bool useGPU)
     {
-        std::cerr << "Render using [" << Config::LOG_GREEN << "GPU" << Config::LOG_RESET << "]" << std::endl;
+        std::cerr << "Render using [" << Config::LOG_GREEN << (useGPU ? "GPU" : "CPU") << Config::LOG_RESET << "]" << std::endl;
     }
 
     void RenderGPU::init()
@@ -252,7 +252,7 @@ namespace scTracer::Window
         int width = cpuRenderer->mCanvasWidth;
         glActiveTexture(GL_TEXTURE0);
         {
-            glBindTexture(GL_TEXTURE_2D, mRenderFBOs.pathTracerLowResolutionTexture);
+            glBindTexture(GL_TEXTURE_2D, mRenderFBOs.CPUrenderTexture);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, canvas);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -359,7 +359,7 @@ namespace scTracer::Window
                         break;
                     }
                 if (hasPbrt)
-                    mSceneListPath.push_back(entry.path().string().substr(mScenesRootPath.size()));
+                    mPbrtSceneListPath.push_back(entry.path().string().substr(mScenesRootPath.size()));
             }
     }
 
@@ -383,8 +383,8 @@ namespace scTracer::Window
 
     void RenderGPU::__loadScene()
     {
-        assert(mSceneListPath.size() > 0);
-        __loadScene(mSceneListPath[0]);
+        assert(mPbrtSceneListPath.size() > 0);
+        __loadScene(mPbrtSceneListPath[0]);
     }
 
     void RenderGPU::__loadShaders()
@@ -552,15 +552,15 @@ namespace scTracer::Window
 
         glGenFramebuffers(1, &mRenderFBOs.pathTracerLowResolutionFBO);
         glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.pathTracerLowResolutionFBO);
-        glGenTextures(1, &mRenderFBOs.pathTracerLowResolutionTexture);
-        glBindTexture(GL_TEXTURE_2D, mRenderFBOs.pathTracerLowResolutionTexture);
+        glGenTextures(1, &mRenderFBOs.CPUrenderTexture);
+        glBindTexture(GL_TEXTURE_2D, mRenderFBOs.CPUrenderTexture);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, lowResSize.x, lowResSize.y, 0, GL_RGBA, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glBindTexture(GL_TEXTURE_2D, 0);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.pathTracerLowResolutionTexture, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mRenderFBOs.CPUrenderTexture, 0);
 
         glGenFramebuffers(1, &mRenderFBOs.accumulationFBO);
         glBindFramebuffer(GL_FRAMEBUFFER, mRenderFBOs.accumulationFBO);

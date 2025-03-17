@@ -35,16 +35,17 @@ namespace scTracer::CPU
 
             if (!mHasCanvas)
             {
-                mCanvas = new float[scene.settings.image_width * scene.settings.image_height * 4 / 16];
+                mCanvas = new float[scene.settings.image_width * scene.settings.image_height * 4];
+                mCanvasAccumulated = new float[scene.settings.image_width * scene.settings.image_height * 4];
                 std::cout << " New Canvas Created!" << std::endl;
                 mHasCanvas = true;
             }
-            else if (mCanvasHeight != scene.settings.image_height / 4 || mCanvasWidth != scene.settings.image_width / 4)
+            else if (mCanvasHeight != scene.settings.image_height || mCanvasWidth != scene.settings.image_width)
             {
                 assert("Canvas size mismatch" && false);
             }
-            mCanvasHeight = scene.settings.image_height / 4;
-            mCanvasWidth = scene.settings.image_width / 4;
+            mCanvasHeight = scene.settings.image_height;
+            mCanvasWidth = scene.settings.image_width;
             numOfSamples = scene.settings.maxSamples;
 
             mScene = &scene;
@@ -57,12 +58,22 @@ namespace scTracer::CPU
 
             // dump2File("output.ppm");
             // dump to file if frame is max
-            if (frameCounter == numOfSamples)
+            // if (frameCounter == numOfSamples)
+            // {
+            //     dump2File("output.ppm");
+            //     frameCounter = 1;
+            // }
+            // else
+
+            // store to accumulated buffer
+            float newRatio = 1.0 / frameCounter;
+            float oldRatio = 1 - newRatio;
+            for (int i = 0; i < mCanvasWidth * mCanvasHeight; ++i)
             {
-                dump2File("output.ppm");
-                frameCounter = 1;
+                mCanvasAccumulated[i * 4 + 0] = newRatio * mCanvas[i * 4 + 0] + oldRatio * mCanvasAccumulated[i * 4 + 0];
+                mCanvasAccumulated[i * 4 + 1] = newRatio * mCanvas[i * 4 + 1] + oldRatio * mCanvasAccumulated[i * 4 + 1];
+                mCanvasAccumulated[i * 4 + 2] = newRatio * mCanvas[i * 4 + 2] + oldRatio * mCanvasAccumulated[i * 4 + 2];
             }
-            else
             {
                 frameCounter++;
             }
@@ -94,6 +105,7 @@ namespace scTracer::CPU
         // canvas( a 2D array of pixels)
         bool mHasCanvas{false};
         float *mCanvas{nullptr};
+        float *mCanvasAccumulated{nullptr};
         int mCanvasWidth{0}, mCanvasHeight{0};
         // integrator
         Integrator *mIntegrator;

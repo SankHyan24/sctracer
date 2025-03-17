@@ -93,7 +93,7 @@ namespace scTracer::Window
         GLuint pathTracerFBO;
         GLuint pathTracerTexture;
         GLuint pathTracerLowResolutionFBO;
-        GLuint pathTracerLowResolutionTexture;
+        GLuint CPUrenderTexture;
 
         GLuint accumulationFBO;
         GLuint accumulationTexture;
@@ -119,7 +119,7 @@ namespace scTracer::Window
     class RenderGPU
     {
     public:
-        RenderGPU();
+        RenderGPU(bool useGPU);
         ~RenderGPU() = default;
         void init();
         void render();
@@ -148,7 +148,8 @@ namespace scTracer::Window
         glm::ivec2 windowSize{Config::default_width, Config::default_height};
         glm::ivec2 lowResSize{windowSize.x * previewScale, windowSize.y *previewScale};
         std::string mScenesRootPath{Config::sceneFolder};
-        std::vector<std::string> mSceneListPath;
+        std::vector<std::string> mPbrtSceneListPath;
+
         void __loadSceneLists();
         void __loadScene();
         void __loadScene(std::string sceneName);

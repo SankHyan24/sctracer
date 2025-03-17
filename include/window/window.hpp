@@ -11,7 +11,7 @@ namespace scTracer::Window
     class Window
     {
     public:
-        Window();
+        Window(bool useGPU);
         ~Window();
         void runLoop(); // run the main loop
         inline void useGPU() { mUseCPU = false; }

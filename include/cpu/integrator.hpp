@@ -71,8 +71,8 @@ namespace scTracer::CPU
     protected:
         void _init()
         {
-            mCanvasWidth = mScene->settings.image_width / 4;
-            mCanvasHeight = mScene->settings.image_height / 4;
+            mCanvasWidth = mScene->settings.image_width;
+            mCanvasHeight = mScene->settings.image_height;
 
             uniforms.resolution = glm::vec2(mCanvasWidth, mCanvasHeight);
             uniforms.topBVHIndex = mScene->bvhFlattor.topLevelIndex;
@@ -121,6 +121,7 @@ namespace scTracer::CPU
             Ray ray = Ray(mScene->camera.mPosition, finalRayDir);
 
             glm::vec4 pixelColor = __traceRay(ray);
+            // glm::vec4 pixelColor {0.1,0.0,1,1};
 
             glm::vec4 color = pixelColor;
 
@@ -158,16 +159,76 @@ namespace scTracer::CPU
                     }
                     break;
                 }
+                GetMaterial(state, ray);
+
+                if (state.isEmitter)
+                {
+                    float misWeight = 1.0;
+                    if (state.depth > 0)
+                        misWeight = PowerHeuristic(scatterSample.pdf, lightSample.pdf);
+                    radiance += misWeight * lightSample.emission * throughput; // direct light from the emitter
+                    break;
+                }
+
                 if (state.depth == uniforms.maxDepth)
                     break;
+
+                {
+                    surfaceScatter = true;
+                    radiance += DirectLight(ray, state, true) * throughput;
+                    scatterSample.f = DisneySample(state, -ray.direction, state.ffnormal, scatterSample.L, scatterSample.pdf);
+                    if (scatterSample.pdf > 0.0)
+                        throughput *= scatterSample.f / scatterSample.pdf;
+                    else
+                        break;
+                }
+
+                ray.direction = scatterSample.L;
+                ray.origin = state.fhp + ray.direction * float(EPS);
             }
-            radiance += state.mat.emission * throughput;
             return glm::vec4(radiance, alpha);
         }
 
-        bool ClosestHit(Ray r, State &state, LightSampleRec lightSample, glm::vec3 &debugger);
-        float AABBIntersect(glm::vec3 minCorner, glm::vec3 maxCorner, Ray r);
-        void GetMaterial(State state, Ray r);
-    };
+        // directlight.cpp
+        glm::vec3 Integrator::DirectLight(Ray r, State state, bool isSurface);
+        // disney.cpp
+        glm::vec3 Integrator::ToLocal(glm::vec3 X, glm::vec3 Y, glm::vec3 Z, glm::vec3 V);
+        glm::vec3 Integrator::DisneyEval(State state, glm::vec3 V, glm::vec3 N, glm::vec3 L, float &pdf);
+        void Integrator::TintColors(Material mat, float eta, float F0, glm::vec3 &Csheen, glm::vec3 &Cspec0);
+        glm::vec3 Integrator::EvalDisneyDiffuse(Material mat, glm::vec3 Csheen, glm::vec3 V, glm::vec3 L, glm::vec3 H, float &pdf);
+        glm::vec3 Integrator::DisneySample(State state, glm::vec3 V, glm::vec3 N, glm::vec3 &L, float &pdf);
+        glm::vec3 Integrator::EvalMicrofacetReflection(Material mat, glm::vec3 V, glm::vec3 L, glm::vec3 H, glm::vec3 F, float &pdf);
+        glm::vec3 Integrator::EvalMicrofacetRefraction(Material mat, float eta, glm::vec3 V, glm::vec3 L, glm::vec3 H, glm::vec3 F, float &pdf);
+        glm::vec3 Integrator::ToWorld(glm::vec3 X, glm::vec3 Y, glm::vec3 Z, glm::vec3 V);
+        glm::vec3 Integrator::EvalClearcoat(Material mat, glm::vec3 V, glm::vec3 L, glm::vec3 H, float &pdf);
+        // hit.cpp
+        void Integrator::GetMaterial(State &state, Ray r);
+        bool Integrator::AnyHit(Ray r, float maxDist);
 
+        bool Integrator::ClosestHit(Ray r, State &state, LightSampleRec &lightSample, glm::vec3 &debugger);
+        // intersection.cpp
+        float Integrator::SphereIntersect(float rad, glm::vec3 pos, Ray r);
+        float Integrator::AABBIntersect(glm::vec3 minCorner, glm::vec3 maxCorner, Ray r);
+        float Integrator::RectIntersect(glm::vec3 pos, glm::vec3 u, glm::vec3 v, glm::vec4 plane, Ray r);
+        // sampling.cpp
+        float Integrator::SchlickWeight(float u);
+        glm::vec3 Integrator::UniformSampleHemisphere(float r1, float r2);
+        void Integrator::Onb(glm::vec3 N, glm::vec3 &T, glm::vec3 B);
+        void Integrator::SampleRectLight(Light light, glm::vec3 scatterPos, LightSampleRec &lightSample);
+        void Integrator::SampleSphereLight(Light light, glm::vec3 scatterPos, LightSampleRec &lightSample);
+        void Integrator::SampleDistantLight(Light light, glm::vec3 scatterPos, LightSampleRec &lightSample);
+        glm::vec3 Integrator::SampleHG(glm::vec3 V, float g, float r1, float r2);
+        float Integrator::PhaseHG(float cosTheta, float g);
+        void Integrator::SampleOneLight(Light light, glm::vec3 scatterPos, LightSampleRec &lightSample);
+        float Integrator::DielectricFresnel(float cosThetaI, float eta);
+        glm::vec3 Integrator::CosineSampleHemisphere(float r1, float r2);
+        glm::vec3 Integrator::SampleGGXVNDF(glm::vec3 V, float ax, float ay, float r1, float r2);
+        glm::vec3 Integrator::SampleGTR2Aniso(float ax, float ay, float r1, float r2);
+        float Integrator::GTR2Aniso(float NDotH, float HDotX, float HDotY, float ax, float ay);
+        float Integrator::PowerHeuristic(float a, float b);
+        float Integrator::GTR1(float NDotH, float a);
+        glm::vec3 Integrator::SampleGTR1(float rgh, float r1, float r2);
+        float Integrator::SmithG(float NDotV, float alphaG);
+        float Integrator::SmithGAniso(float NDotV, float VDotX, float VDotY, float ax, float ay);
+    };
 }

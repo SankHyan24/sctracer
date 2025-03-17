@@ -87,6 +87,7 @@ namespace scTracer::CPU
         float radius;
         float area;
         float type;
+        
     };
 
     struct State
@@ -114,6 +115,7 @@ namespace scTracer::CPU
         glm::vec3 L;
         glm::vec3 f;
         float pdf;
+        ScatterSampleRec() : L(0.0f), f(0.0f), pdf(0.0f) {}
     };
 
     struct LightSampleRec

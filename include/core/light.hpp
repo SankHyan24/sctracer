@@ -27,7 +27,7 @@ namespace scTracer::Core
         glm::vec3 v;
         float radius{0.0f};
         float area{0.0f};
-        float type{0.0f};
+        float type{0.0f}; // set as float for trans to GPU ezly. cast into int when need
 
         void printDebugInfo()
         {
