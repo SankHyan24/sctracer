@@ -1,9 +1,93 @@
-#include <window/renderer.hpp>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
+#define TINYEXR_IMPLEMENTATION
+#include <tinyexr.h>
 #include <filesystem>
+#include <window/renderer.hpp>
+
 namespace scTracer::Window
 {
+    void RenderPipeline::init()
+    {
+        vertexShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "vertex.glsl"), GL_VERTEX_SHADER);
+        pathTracerShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "pathtracer.glsl"), GL_FRAGMENT_SHADER);
+        pathTracerLowResolutionShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "pathtracer_low_resolution.glsl"), GL_FRAGMENT_SHADER);
+        imageMapShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "imagemap.glsl"), GL_FRAGMENT_SHADER);
+        toneMapShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "tonemap.glsl"), GL_FRAGMENT_SHADER);
+        // debug shaders
+        debuggerVertShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "debugger.vert"), GL_VERTEX_SHADER);
+        debuggerFragShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "debugger.frag"), GL_FRAGMENT_SHADER);
+    }
+
+    void RenderPipeline::load()
+    {
+        // programs
+        Debugger = new scTracer::GPU::Program({debuggerVertShader, debuggerFragShader});
+        PathTracer = new scTracer::GPU::Program({vertexShader, pathTracerShader});
+        PathTracerLowResolution = new scTracer::GPU::Program({vertexShader, pathTracerLowResolutionShader});
+        ImageMap = new scTracer::GPU::Program({vertexShader, imageMapShader});
+        ToneMap = new scTracer::GPU::Program({vertexShader, toneMapShader});
+    }
+
+    void RenderPipeline::reload()
+    {
+        delete Debugger;
+        delete PathTracer;
+        delete PathTracerLowResolution;
+        delete ImageMap;
+        delete ToneMap;
+        load();
+    }
+
+    void RenderPipeline::reinit()
+    {
+        delete vertexShader;
+        delete debuggerVertShader;
+        delete debuggerFragShader;
+        delete pathTracerShader;
+        delete pathTracerLowResolutionShader;
+        delete imageMapShader;
+        delete toneMapShader;
+        init();
+    }
+
+    RenderPipeline::~RenderPipeline()
+    {
+        // delete shaders
+        delete vertexShader;
+        delete debuggerVertShader;
+        delete debuggerFragShader;
+        delete pathTracerShader;
+        delete pathTracerLowResolutionShader;
+        delete imageMapShader;
+        delete toneMapShader;
+        // delete programs
+        delete Debugger;
+        delete PathTracer;
+        delete PathTracerLowResolution;
+        delete ImageMap;
+        delete ToneMap;
+    }
+
+    GLFWManager::GLFWManager()
+    {
+        if (!glfwInit())
+        {
+            std::cerr << "Failed to initialize GLFW" << std::endl;
+            exit(1);
+        }
+        glfwWindowHint(GLFW_DEPTH_BITS, 24);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE); // for renderdoc debug
+    }
+
+    GLFWManager::~GLFWManager()
+    {
+        glfwTerminate();
+    }
+
     RenderGPU::RenderGPU()
     {
         std::cerr << "Render using [" << Config::LOG_GREEN << "GPU" << Config::LOG_RESET << "]" << std::endl;
@@ -69,6 +153,79 @@ namespace scTracer::Window
         delete[] buffer;
     }
 
+    void RenderGPU::saveEXR(std::string filename)
+    {
+        int width = windowSize.x;
+        int height = windowSize.y;
+        int size = width * height * 4;
+        float *buffer = new float[size];
+        __captureFrame(buffer);
+        // save to file
+        std::string fullPath = Config::outputFolder + filename;
+
+        EXRHeader header;
+        InitEXRHeader(&header);
+        EXRImage exrImage;
+        InitEXRImage(&exrImage);
+
+        std::vector<float> r(width * height);
+        std::vector<float> g(width * height);
+        std::vector<float> b(width * height);
+        std::vector<float> a(width * height);
+        for (int i = 0; i < height; i++)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                int index = i * width + j;
+                int index_height_fliped = (height - i - 1) * width + j;
+                r[index_height_fliped] = buffer[index * 4 + 0];
+                g[index_height_fliped] = buffer[index * 4 + 1];
+                b[index_height_fliped] = buffer[index * 4 + 2];
+                a[index_height_fliped] = buffer[index * 4 + 3];
+            }
+        }
+        float *imagePtrs[4] = {b.data(), g.data(), r.data(), a.data()};
+
+        exrImage.num_channels = 4;
+        exrImage.images = (unsigned char **)imagePtrs;
+        exrImage.width = width;
+        exrImage.height = height;
+        EXRChannelInfo channelInfos[4];
+        header.num_channels = 4;
+        header.channels = (EXRChannelInfo *)malloc(sizeof(EXRChannelInfo) * header.num_channels);
+        strncpy(header.channels[0].name, "B", 255);
+        header.channels[0].name[strlen("B")] = '\0';
+        strncpy(header.channels[1].name, "G", 255);
+        header.channels[1].name[strlen("G")] = '\0';
+        strncpy(header.channels[2].name, "R", 255);
+        header.channels[2].name[strlen("R")] = '\0';
+        strncpy(header.channels[3].name, "A", 255);
+        header.channels[3].name[strlen("A")] = '\0';
+
+        header.pixel_types = (int *)malloc(sizeof(int) * header.num_channels);
+        header.requested_pixel_types = (int *)malloc(sizeof(int) * header.num_channels);
+        for (int i = 0; i < header.num_channels; i++)
+        {
+            header.pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;          // pixel type of input image
+            header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF; // pixel type of output image to be stored in .EXR
+        }
+
+        const char *err = NULL; // or nullptr in C++11 or later.
+        int ret = SaveEXRImageToFile(&exrImage, &header, fullPath.c_str(), &err);
+        if (ret != TINYEXR_SUCCESS)
+        {
+            fprintf(stderr, "Save EXR err: %s\n", err);
+            FreeEXRErrorMessage(err); // free's buffer for an error message
+            exit(ret);
+        }
+        std::cout << "Saved exr file. [" << fullPath << "]" << std::endl;
+
+        free(header.channels);
+        free(header.pixel_types);
+        free(header.requested_pixel_types);
+        delete[] buffer;
+    }
+
     void RenderGPU::show()
     { // to screen
         glActiveTexture(GL_TEXTURE0);
@@ -101,6 +258,12 @@ namespace scTracer::Window
     {
         if (!mScene->isDirty() && mScene->settings.maxSamples != -1 && numOfSamples >= mScene->settings.maxSamples)
             return;
+        if (shaderNeedReload)
+        {
+            shaderNeedReload = false;
+            __loadShaders();
+            std::cerr << Config::LOG_BLUE << "Shaders Reloaded" << Config::LOG_RESET << std::endl;
+        }
         if (mScene->instancesDirty)
         {
             mScene->instancesDirty = false;
@@ -115,6 +278,7 @@ namespace scTracer::Window
             int size = sizeof(BVH::BVHFlattor::FlatNode) * (mScene->bvhFlattor.flattenedNodes.size() - index);
             glBindBuffer(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHBuffer);
             glBufferSubData(GL_TEXTURE_BUFFER, offset, size, &mScene->bvhFlattor.flattenedNodes[index]);
+            std::cerr << Config::LOG_BLUE << "Instances Reloaded" << Config::LOG_RESET << std::endl;
         }
 
         if (mScene->envMapDirty)
@@ -126,6 +290,7 @@ namespace scTracer::Window
 
         if (mScene->isDirty())
         {
+            timeBegin = glfwGetTime();
             numOfSamples = 1; // reset samples
             frameCounter = 1;
             mScene->dirty = false;
@@ -135,6 +300,7 @@ namespace scTracer::Window
         }
         else
         {
+            timeThisFrame = glfwGetTime();
             frameCounter++;
             numOfSamples++;
             currentBuffer = 1 - currentBuffer;
@@ -428,6 +594,14 @@ namespace scTracer::Window
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+        Utils::glUtils::checkError("RenderGPU::__captureFrame");
+    }
+
+    void RenderGPU::__captureFrame(float *buffer)
+    {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, mRenderFBOs.outputTexture[1 - currentBuffer]);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, buffer);
         Utils::glUtils::checkError("RenderGPU::__captureFrame");
     }
 }

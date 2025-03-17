@@ -35,64 +35,12 @@ namespace scTracer::Window
 
     struct RenderPipeline
     {
-        void init()
-        {
-            // vertex shader
-            vertexShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "vertex.glsl"), GL_VERTEX_SHADER);
-            debuggerVertShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "debugger.vert"), GL_VERTEX_SHADER);
-            // fragment shaders
-            debuggerFragShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "debugger.frag"), GL_FRAGMENT_SHADER);
-            pathTracerShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "pathtracer.glsl"), GL_FRAGMENT_SHADER);
-            pathTracerLowResolutionShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "pathtracer_low_resolution.glsl"), GL_FRAGMENT_SHADER);
-            imageMapShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "imagemap.glsl"), GL_FRAGMENT_SHADER);
-            toneMapShader = new scTracer::GPU::Shader(scTracer::GPU::shaderRaw::load(scTracer::Config::shaderFolder + "tonemap.glsl"), GL_FRAGMENT_SHADER);
-        }
-        void load()
-        {
-            // programs
-            Debugger = new scTracer::GPU::Program({debuggerVertShader, debuggerFragShader});
-            PathTracer = new scTracer::GPU::Program({vertexShader, pathTracerShader});
-            PathTracerLowResolution = new scTracer::GPU::Program({vertexShader, pathTracerLowResolutionShader});
-            ImageMap = new scTracer::GPU::Program({vertexShader, imageMapShader});
-            ToneMap = new scTracer::GPU::Program({vertexShader, toneMapShader});
-        }
-        void reload()
-        {
-            delete Debugger;
-            delete PathTracer;
-            delete PathTracerLowResolution;
-            delete ImageMap;
-            delete ToneMap;
-            load();
-        }
-        void reinit()
-        {
-            delete vertexShader;
-            delete debuggerVertShader;
-            delete debuggerFragShader;
-            delete pathTracerShader;
-            delete pathTracerLowResolutionShader;
-            delete imageMapShader;
-            delete toneMapShader;
-            init();
-        }
-        ~RenderPipeline()
-        {
-            // delete shaders
-            delete vertexShader;
-            delete debuggerVertShader;
-            delete debuggerFragShader;
-            delete pathTracerShader;
-            delete pathTracerLowResolutionShader;
-            delete imageMapShader;
-            delete toneMapShader;
-            // delete programs
-            delete Debugger;
-            delete PathTracer;
-            delete PathTracerLowResolution;
-            delete ImageMap;
-            delete ToneMap;
-        }
+        RenderPipeline() = default;
+        void init();
+        void load();
+        void reload();
+        void reinit();
+        ~RenderPipeline();
         // shaders
         GPU::Shader *vertexShader{nullptr};
         GPU::Shader *debuggerFragShader{nullptr};
@@ -135,7 +83,6 @@ namespace scTracer::Window
         // for envmap
         GLuint envMapTex;
         GLuint envMapCDFTex;
-
         //
     };
 
@@ -160,24 +107,8 @@ namespace scTracer::Window
     class GLFWManager
     {
     public:
-        GLFWManager()
-        {
-            if (!glfwInit())
-            {
-                std::cerr << "Failed to initialize GLFW" << std::endl;
-                exit(1);
-            }
-            glfwWindowHint(GLFW_DEPTH_BITS, 24);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-            glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE); // for renderdoc debug
-        }
-
-        ~GLFWManager()
-        {
-            glfwTerminate();
-        }
+        GLFWManager();
+        ~GLFWManager();
     };
 
     class RenderGPU
@@ -191,8 +122,10 @@ namespace scTracer::Window
         void showCPU(CPU::CPURenderer *cpuRenderer);
         void update();
         void saveImage(std::string filename);
+        void saveEXR(std::string filename);
 
         Core::Scene *mScene{nullptr};
+        bool shaderNeedReload{false};
         // Render contexts
         RenderPipeline mRenderPipeline;
         RenderFrameBuffers mRenderFrameBuffers;
@@ -202,6 +135,7 @@ namespace scTracer::Window
 
     private:
         // for rendering
+        double timeBegin{0.0f}, timeThisFrame{0.0f};
         float previewScale{0.25f}; // which means 1/4 of the original resolution
         int numOfSamples{1}, frameCounter{1};
         int currentBuffer{0}; // 0 or 1
@@ -217,6 +151,7 @@ namespace scTracer::Window
         void __initGPUDateBuffers();
         void __initFBOs();
         void __captureFrame(unsigned char *buffer);
+        void __captureFrame(float *buffer);
         friend class Window;
     };
 
