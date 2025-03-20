@@ -9,7 +9,7 @@
 #include <core/scene.hpp>
 
 #include <tinyxml2.h>
-#include <tinyobjloader/tiny_obj_loader.h>
+#include <tiny_obj_loader.h>
 
 namespace scTracer::Importer::Maya
 {
@@ -23,6 +23,8 @@ namespace scTracer::Importer::Maya
     class mayaObjFile
     {
     public:
+        std::string objPath;
+        std::vector<tinyobj::shape_t> shapes;
     };
     class mayaMtlFile
     {
