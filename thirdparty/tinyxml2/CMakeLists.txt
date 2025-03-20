@@ -1,0 +1,5 @@
+add_library(tinyXML)
+target_sources(tinyXML PRIVATE tinyxml2.cpp)
+target_include_directories(tinyXML PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(${_EXE_NAME_} tinyXML)
+target_include_directories(${_EXE_NAME_} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
