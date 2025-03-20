@@ -1,7 +1,7 @@
 #include <core/camera.hpp>
 using namespace scTracer::Core;
 
-Camera::Camera(glm::vec3 position, glm::vec3 lookAt, float fovDegree)
+Camera::Camera(glm::vec3 position, glm::vec3 lookAt, float fovDegree, glm::vec3 up )
 {
     mPosition = position;
     mFront = glm::normalize(lookAt - position);

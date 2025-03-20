@@ -149,6 +149,7 @@ namespace scTracer::Window
         glm::ivec2 lowResSize{windowSize.x * previewScale, windowSize.y *previewScale};
         std::string mScenesRootPath{Config::sceneFolder};
         std::vector<std::string> mPbrtSceneListPath;
+        std::vector<std::string> mMayaSceneListPath;
 
         void __loadSceneLists();
         void __loadScene();

@@ -21,7 +21,7 @@ namespace scTracer::Core
     class Camera : CameraBase
     {
     public:
-        Camera(glm::vec3 position, glm::vec3 lookAt, float fovDegree);
+        Camera(glm::vec3 position, glm::vec3 lookAt, float fovDegree, glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f));
         Camera(glm::mat4 transform, float fovDegree);
         virtual ~Camera() = default;
 

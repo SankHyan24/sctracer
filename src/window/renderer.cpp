@@ -352,14 +352,28 @@ namespace scTracer::Window
             if (entry.is_directory())
             { // check if has .pbrt file in the folder
                 bool hasPbrt = false;
+                bool hasMaya = false;
                 for (const auto &subEntry : std::filesystem::directory_iterator(entry.path()))
                     if (subEntry.is_regular_file() && subEntry.path().extension() == ".pbrt")
                     {
                         hasPbrt = true;
                         break;
                     }
+                    else if (subEntry.is_regular_file() && subEntry.path().extension() == ".mb")
+                    {
+                        hasMaya = true;
+                        break;
+                    }
                 if (hasPbrt)
+                {
                     mPbrtSceneListPath.push_back(entry.path().string().substr(mScenesRootPath.size()));
+                    continue;
+                }
+                if (hasMaya)
+                {
+                    mMayaSceneListPath.push_back(entry.path().string().substr(mScenesRootPath.size()));
+                    continue;
+                }
             }
     }
 
@@ -369,13 +383,20 @@ namespace scTracer::Window
         std::string sceneFullPath = mScenesRootPath + sceneName;
         std::string scenePbrtName;
         for (const auto &entry : std::filesystem::directory_iterator(sceneFullPath))
+        {
             if (entry.is_regular_file() && entry.path().extension() == ".pbrt")
             {
                 scenePbrtName = entry.path().string();
                 break;
             }
-        std::cerr << "Loading scene [" << scenePbrtName << "]" << std::endl;
-        mScene = scTracer::Importer::Pbrt::pbrtParser::parse(scenePbrtName);
+            if (entry.is_regular_file() && entry.path().extension() == ".mb")
+            {
+                scenePbrtName = entry.path().string();
+                break;
+            }
+        }
+        std::cerr << "Loading " << Config::LOG_BLUE << "MAYA" << Config::LOG_RESET << " scene [" << scenePbrtName << "]" << std::endl;
+        mScene = scTracer::Importer::Maya::mayaParser::parse(scenePbrtName);
         if (!mScene->isInitialized())
             mScene->processScene();
         Utils::glUtils::checkError("RenderGPU::__loadScene");
@@ -383,8 +404,8 @@ namespace scTracer::Window
 
     void RenderGPU::__loadScene()
     {
-        assert(mPbrtSceneListPath.size() > 0);
-        __loadScene(mPbrtSceneListPath[0]);
+        assert(mMayaSceneListPath.size() > 0);
+        __loadScene(mMayaSceneListPath[0]);
     }
 
     void RenderGPU::__loadShaders()

@@ -59,15 +59,15 @@ struct Medium
 
 struct Material
 {
-    vec3 baseColor;
+    vec3 baseColor; // Kd
     float opacity;
-    int alphaMode;
+    int alphaMode; 
     float alphaCutoff;
-    vec3 emission;
+    vec3 emission; 
     float anisotropic;
-    float metallic;
-    float roughness;
-    float subsurface;
+    float metallic; // Ks
+    float roughness; // Ns
+    float subsurface; 
     float specularTint;
     float sheen;
     float sheenTint;
@@ -79,6 +79,20 @@ struct Material
     float ay;
     Medium medium;
 };
+
+struct MatPhong{
+    vec3 Kd;
+    vec3 Ks;
+    float Ns;
+};
+
+MatPhong MaterialToPhong(Material mat){
+    MatPhong m;
+    m.Kd = mat.baseColor;
+    m.Ks = vec3(mat.metallic);
+    m.Ns = mat.roughness;
+    return m;
+} 
 
 struct Camera
 {

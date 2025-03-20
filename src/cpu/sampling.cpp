@@ -34,7 +34,7 @@ namespace scTracer::CPU
         // TODO: Fix this. Currently assumes the light will be hit only from the outside
         sphereCentertoSurface /= distToSphereCenter;
         sampledDir = UniformSampleHemisphere(r1, r2);
-        glm::vec3 T, B;
+        glm::vec3 T{0.f}, B{0.f};
         Onb(sphereCentertoSurface, T, B);
         sampledDir = T * sampledDir.x + B * sampledDir.y + sphereCentertoSurface * sampledDir.z;
 

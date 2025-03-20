@@ -202,7 +202,7 @@ namespace scTracer::Importer::Pbrt
             material.name = materialName;
             material.basecolor = glm::vec3(reflectance[0], reflectance[1], reflectance[2]);
             material.mType = Core::getMaterialType(materialType);
-            material.typePreprocess();
+            material.mSystem = Core::MaterialRaw::MatSystem::PBRT;
             return material;
         }
 
