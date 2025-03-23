@@ -1,9 +1,12 @@
 #include <core/mesh.hpp>
-namespace scTracer::Core {
-    void Mesh::BuildBVH() {
+namespace scTracer::Core
+{
+    void Mesh::BuildBVH()
+    {
         const int triangleNumber = indices.size();
         std::vector<BVH::BoundingBox> bounds(triangleNumber);
-        for (int i = 0; i < triangleNumber; i++) {
+        for (int i = 0; i < triangleNumber; i++)
+        {
             glm::vec3 v0 = vertices[indices[i].x];
             glm::vec3 v1 = vertices[indices[i].y];
             glm::vec3 v2 = vertices[indices[i].z];

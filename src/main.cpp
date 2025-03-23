@@ -4,8 +4,8 @@
 int main()
 {
     std::cout << "Welcome to chuan's Path Tracer!" << std::endl;
-    scTracer::Window::Window window(false);
-    window.useGPU();
+    scTracer::Window::Window window(true);
+    // window.useGPU();
     window.runLoop();
     std::cout << "Bye!" << std::endl;
     return 0;

@@ -25,6 +25,101 @@ namespace scTracer::Importer::Maya
     public:
         std::string objPath;
         std::vector<tinyobj::shape_t> shapes;
+        std::vector<tinyobj::material_t> materials;  // 材质数据
+        std::vector<Core::Mesh *> meshes;            // mesh数据
+        std::vector<Core::MaterialRaw> materialsRaw; // 材质数据
+        std::vector<Core::Instance> instances;       // 实例数据
+        mayaObjFile(std::string objPath) : objPath(objPath)
+        {
+            __parse();
+        }
+
+        void __parse()
+        {
+            tinyobj::ObjReaderConfig reader_config;
+            tinyobj::attrib_t attrib;
+            reader_config.triangulate = true;
+            reader_config.vertex_color = false;
+            int lastIndex = objPath.find_last_of("/");
+            int lastIndex1 = objPath.find_last_of("\\");
+            if (lastIndex1 > lastIndex)
+                lastIndex = lastIndex1;
+            reader_config.mtl_search_path = objPath.substr(0, lastIndex);
+
+            tinyobj::ObjReader reader;
+            std::string warn; // 警告信息
+            std::string err;  // 错误信息
+            bool success = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, objPath.c_str(), reader_config.mtl_search_path.c_str(), true);
+            if (!success)
+            {
+                std::cerr << "Error: " << err << std::endl;
+                exit(0);
+            }
+            std::cout << "Obj file: " << objPath << std::endl;
+            std::cout << "Number of shapes: " << shapes.size() << std::endl;
+
+            const std::vector<float> &vertices = attrib.vertices;
+            const std::vector<float> &normals = attrib.normals;
+            const std::vector<float> &texcoords = attrib.texcoords;
+
+            const std::vector<tinyobj::shape_t> &shapes = this->shapes;
+            const std::vector<tinyobj::material_t> &materials = this->materials;
+            std::cout << "Number of materials: " << materials.size() << std::endl;
+            std::cout << "Number of vertices: " << vertices.size() / 3 << std::endl;
+            std::cout << "Number of normals: " << normals.size() / 3 << std::endl;
+            std::cout << "Number of texcoords: " << texcoords.size() / 2 << std::endl;
+
+            // add materials
+            for (int i = 0; i < materials.size(); i++)
+            {
+                Core::MaterialRaw mat;
+                mat.name = materials[i].name;
+                mat.mSystem = Core::MaterialRaw::MatSystem::PHONG;
+                mat.Kd = glm::vec3(materials[i].diffuse[0], materials[i].diffuse[1], materials[i].diffuse[2]);
+                mat.Ks = glm::vec3(materials[i].specular[0], materials[i].specular[1], materials[i].specular[2]);
+                mat.Tr = glm::vec3(materials[i].transmittance[0], materials[i].transmittance[1], materials[i].transmittance[2]);
+                mat.Ns = materials[i].shininess;
+                mat.Ni = materials[i].ior;
+                mat.baseColorTexId = -1;
+                if (materials[i].diffuse_texname != "")
+                {
+                    mat.baseColorTexId = i;
+                    mat.baseColorTexName = materials[i].diffuse_texname;
+                }
+                materialsRaw.push_back(mat);
+            }
+
+            // add meshes
+            for (int i = 0; i < shapes.size(); i++)
+            {
+                auto &shape = shapes[i];
+                auto &mesh = shape.mesh;
+                Core::Mesh *curMesh = new Core::Mesh();
+                curMesh->meshName = shape.name;
+                std::cout << "material id " << mesh.material_ids[0] << std::endl;
+                for (size_t j = 0; j < mesh.num_face_vertices.size(); j++)
+                {
+                    int fnum = mesh.num_face_vertices[j];
+                    assert(fnum == 3 && "only support triangle mesh");
+                    for (int k = 0; k < fnum; k++)
+                    {
+                        tinyobj::index_t index = mesh.indices[j * fnum + k];
+                        glm::vec3 v = glm::vec3(vertices[3 * index.vertex_index + 0], vertices[3 * index.vertex_index + 1], vertices[3 * index.vertex_index + 2]);
+                        glm::vec3 n = glm::vec3(normals[3 * index.normal_index + 0], normals[3 * index.normal_index + 1], normals[3 * index.normal_index + 2]);
+                        glm::vec2 uv = glm::vec2(texcoords[2 * index.texcoord_index + 0], texcoords[2 * index.texcoord_index + 1]);
+                        curMesh->vertices.push_back(v);
+                        curMesh->normals.push_back(n);
+                        curMesh->uvs.push_back(uv);
+                    }
+                    // add face indices (local vert index)
+                    curMesh->indices.push_back(glm::ivec3(3 * j + 0, 3 * j + 1, 3 * j + 2));
+                }
+                // add instance
+                Core::Instance instance(glm::mat4(1.0f), mesh.material_ids[0], i);
+                meshes.push_back(curMesh);
+                instances.push_back(instance);
+            }
+        }
     };
     class mayaMtlFile
     {
@@ -211,7 +306,6 @@ namespace scTracer::Importer::Maya
             res_y = res_y_->IntValue();
             fovY = fovY_->FloatValue();
             camera = Core::Camera(pos, lookAt, fovY, up);
-            camera.printDebugInfo();
             settings = Core::SceneSettings(res_x, res_y);
             tinyxml2::XMLElement *firstlight_ = camera_->NextSiblingElement();
             for (auto light_ = firstlight_; light_ != nullptr; light_ = light_->NextSiblingElement())
@@ -238,11 +332,6 @@ namespace scTracer::Importer::Maya
                 emission.x = std::stof(value[0]);
                 emission.y = std::stof(value[1]);
                 emission.z = std::stof(value[2]);
-
-                std::cout << "emission: " << emission.x << std::endl;
-                std::cout << "emission: " << emission.y << std::endl;
-                std::cout << "emission: " << emission.z << std::endl;
-
                 lightsNames.push_back(name_->Value());
                 lightsEmissions.push_back(emission);
             }
@@ -266,17 +355,39 @@ namespace scTracer::Importer::Maya
             // remove .mb
             std::string pathWithout_MB = path.substr(0, path.find_last_of("."));
             xmlPath = pathWithout_MB + ".xml";
-            mtlPath = pathWithout_MB + ".mtl";
+            // mtlPath = pathWithout_MB + ".mtl"; // deprecated
             objPath = pathWithout_MB + ".obj";
             mayaXmlFile xmlFile{xmlPath};
-            mayaMtlFile mtlFile{mtlPath};
-            // for (int i = 0; i < mtlFile.materials.size(); i++)
-            // {
-            //     mtlFile.materials[i].printDebugInfo();
-            // }
+            // mayaMtlFile mtlFile{mtlPath};
             mayaObjFile objFile{objPath};
-
             auto scene = new Core::Scene(xmlFile.camera, xmlFile.settings);
+            scene->materials = objFile.materialsRaw;
+            for (auto &mesh : objFile.meshes)
+                scene->meshes.push_back(mesh);
+            for (auto &instance : objFile.instances)
+                scene->instances.push_back(instance);
+            std::vector<Core::Light> lights; // lights process
+            for (int i = 0; i < xmlFile.lightsNames.size(); i++)
+            {
+                Core::Light light;
+                std::string material_name = xmlFile.lightsNames[i]; // find the mesh who use this material
+                auto it = std::find_if(objFile.materials.begin(), objFile.materials.end(), [&material_name](const tinyobj::material_t &mat)
+                                       { return mat.name == material_name; });
+                int materialId = it - objFile.materials.begin();
+                int meshID = -1;
+                assert(it != objFile.materials.end() && "material not found");
+                for (int i = 0; i < scene->meshes.size(); i++)
+                    if (scene->instances[i].mMaterialIndex == materialId)
+                    {
+                        meshID = i;
+                        break;
+                    }
+                assert(meshID != -1 && "mesh id error");
+                light.fromMesh2RectLight(scene->meshes[meshID], xmlFile.lightsEmissions[i]);
+                lights.push_back(light);
+            }
+            for (auto &light : lights)
+                scene->lights.push_back(light);
             std::cout << "Done!" << std::endl;
             return scene;
         }

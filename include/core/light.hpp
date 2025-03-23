@@ -40,5 +40,18 @@ namespace scTracer::Core
             std::cout << "area: " << area << std::endl;
             std::cout << "type: " << LightTypeStrings[int(type)] << "       type: " << type << std::endl;
         }
+
+        void fromMesh2RectLight(const Mesh *mesh, glm::vec3 emission)
+        {
+            // only for maya scene
+            assert(mesh->vertices.size() == 6 && "RectLight only support quad mesh");
+            position = mesh->vertices[0];
+            u = mesh->vertices[1] - mesh->vertices[0];
+            v = mesh->vertices[2] - mesh->vertices[1];
+            radius = 0.5f * glm::length(u) + 0.5f * glm::length(v);
+            area = 0.5f * glm::length(glm::cross(u, v));
+            type = float(RectLight);
+            this->emission = emission;
+        }
     };
 } // namespace scTracer::Core

@@ -101,6 +101,11 @@ namespace scTracer::Core
                 std::cout << "Ka: " << Ka.x << " " << Ka.y << " " << Ka.z << std::endl;
                 std::cout << "Ns: " << Ns << std::endl;
                 std::cout << "Ni: " << Ni << std::endl;
+                if (baseColorTexId != -1)
+                {
+                    std::cout << "Basecolor Texture ID: " << baseColorTexId << std::endl;
+                    std::cout << "Basecolor Texture Name: " << baseColorTexName << std::endl;
+                }
             }
         }
         Material getMaterialFromPbrt()
@@ -147,6 +152,7 @@ namespace scTracer::Core
             mat.emission = glm::vec3(0.0f);
             mat.opacity = Tr.x;
             mat.specularTint = specular * 0.08f;
+            printDebugInfo();
             return mat;
         }
         Material getMaterialFromDisney()
@@ -179,7 +185,7 @@ namespace scTracer::Core
         };
         glm::vec3 Ks{0.f};
         glm::vec3 Tr{1.0f};
-        glm::vec3 Ka{1.0f};
+        glm::vec3 Ka{0.0f};
         float Ns{1.0f};
         float Ni{1.0f};
         //
@@ -187,7 +193,8 @@ namespace scTracer::Core
         float roughness;
         float metallic;
 
-        int *baseColorTexId{nullptr};
+        int baseColorTexId{-1};
+        std::string baseColorTexName;
     };
 
     class MaterialPhong

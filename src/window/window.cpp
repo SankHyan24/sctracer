@@ -6,6 +6,7 @@ namespace scTracer::Window
     Window::Window(bool useGPU) : mWindow(nullptr), mGLManager(std::make_unique<GLFWManager>()), mRenderer(std::make_unique<RenderGPU>(useGPU))
     {
         __autoInit();
+        mUseCPU = !useGPU;
         std::cerr << Config::LOG_GREEN << "Every thing is ready!" << Config::LOG_RESET << std::endl;
     }
 
