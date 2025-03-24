@@ -49,6 +49,7 @@ namespace scTracer::Window
         // init renderer
         mRenderer->init();
         mCPURenderer = new CPU::CPURenderer();
+        glfwSetWindowSize(mWindow, mRenderer->mScene->settings.image_width, mRenderer->mScene->settings.image_height);
     }
 
     void Window::__initImGui()
