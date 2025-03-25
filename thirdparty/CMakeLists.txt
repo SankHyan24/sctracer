@@ -2,6 +2,9 @@
 add_subdirectory(tinyexr)
 add_subdirectory(tinyxml2)
 
+# add stb_image
+target_include_directories(${_EXE_NAME_} PUBLIC "stb_image")
+
 # add gl3w
 add_subdirectory(gl3w)
 

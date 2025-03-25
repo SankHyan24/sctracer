@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <vector>
 
 namespace scTracer::Core
 {
@@ -14,7 +16,7 @@ namespace scTracer::Core
         int mWidth;
         int mHeight;
         int mChannel;
-        std::vector<unsigned char> texData;
+        std::vector<unsigned char> data;
         std::string name;
     };
 }
