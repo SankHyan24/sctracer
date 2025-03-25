@@ -558,8 +558,11 @@ namespace scTracer::Window
         glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.transformsTex);
         glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightsTex);
-        glActiveTexture(GL_TEXTURE9);
-        glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
+        if (!mScene->textures.empty())
+        {
+            glActiveTexture(GL_TEXTURE9);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
+        }
         glActiveTexture(GL_TEXTURE10);
         glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapTex);
 
