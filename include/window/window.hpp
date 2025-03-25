@@ -22,6 +22,7 @@ namespace scTracer::Window
         void __initImGui();
         void __run();
         void __updateImguiWindow();
+
         static void __keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
         std::unique_ptr<GLFWManager> mGLManager;
         GLFWwindow *mWindow;
@@ -29,5 +30,7 @@ namespace scTracer::Window
         // for cpu debug
         bool mUseCPU{true};
         CPU::CPURenderer *mCPURenderer{nullptr};
+        // for scene selection
+        int sceneIdx{0};
     };
 }

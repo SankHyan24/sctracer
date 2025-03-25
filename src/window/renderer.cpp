@@ -111,6 +111,27 @@ namespace scTracer::Window
         Utils::glUtils::checkError("RenderGPU::init");
     }
 
+    void RenderGPU::freeAll()
+    {
+        delete mQuad;
+
+        mRenderFBOs.freeAllTex();
+        mRenderFrameBuffers.freeAllTex();
+        mRenderFrameBuffers.freeAllBuffers();
+        mRenderFBOs.freeAllFramebuffers();
+    }
+
+    void RenderGPU::reInitScene(std::string sceneName)
+    {
+        freeAll();
+        __loadScene(sceneName);
+        __initGPUDateBuffers();
+        mQuad = new Quad();
+        __initFBOs();
+        __loadShaders();
+        Utils::glUtils::checkError("RenderGPU::reInitScene");
+    }
+
     void RenderGPU::render()
     {
         if (!mScene->isDirty() && mScene->settings.maxSamples != -1 && numOfSamples >= mScene->settings.maxSamples)
@@ -381,33 +402,49 @@ namespace scTracer::Window
     {
         // load and process scene
         std::string sceneFullPath = mScenesRootPath + sceneName;
-        std::string scenePbrtName;
+        int sceneType = -1; // 0: pbrt, 1: maya
         for (const auto &entry : std::filesystem::directory_iterator(sceneFullPath))
         {
             if (entry.is_regular_file() && entry.path().extension() == ".pbrt")
             {
-                scenePbrtName = entry.path().string();
+                sceneName = entry.path().string();
+                sceneType = 0;
                 break;
             }
             if (entry.is_regular_file() && entry.path().extension() == ".mb")
             {
-                scenePbrtName = entry.path().string();
+                sceneName = entry.path().string();
+                sceneType = 1;
                 break;
             }
         }
-        std::cerr << "Loading " << Config::LOG_BLUE << "MAYA" << Config::LOG_RESET << " scene [" << scenePbrtName << "]" << std::endl;
-        mScene = scTracer::Importer::Maya::mayaParser::parse(scenePbrtName);
+        assert(sceneType != -1 && "scene not found or not supported");
+        switch (sceneType)
+        {
+        case 0:
+            std::cerr << "Loading " << Config::LOG_BLUE << "PBRT" << Config::LOG_RESET << " scene [" << sceneName << "]" << std::endl;
+            mScene = scTracer::Importer::Pbrt::pbrtParser::parse(sceneName);
+            break;
+        case 1:
+            std::cerr << "Loading " << Config::LOG_BLUE << "MAYA" << Config::LOG_RESET << " scene [" << sceneName << "]" << std::endl;
+            mScene = scTracer::Importer::Maya::mayaParser::parse(sceneName);
+            break;
+        };
         if (!mScene->isInitialized())
             mScene->processScene();
         Utils::glUtils::checkError("RenderGPU::__loadScene");
+
+        windowSize.x = mScene->settings.image_width;
+        windowSize.y = mScene->settings.image_height;
     }
 
     void RenderGPU::__loadScene()
     {
-        assert(mMayaSceneListPath.size() > 0);
-        __loadScene(mMayaSceneListPath[0]);
-        windowSize.x = mScene->settings.image_width;
-        windowSize.y = mScene->settings.image_height;
+        assert(mMayaSceneListPath.size() > 0 || mPbrtSceneListPath.size() > 0);
+        if (mMayaSceneListPath.size() > 0)
+            __loadScene(mPbrtSceneListPath[0]);
+        else
+            __loadScene(mMayaSceneListPath[0]);
     }
 
     void RenderGPU::__loadShaders()

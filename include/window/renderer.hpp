@@ -86,6 +86,30 @@ namespace scTracer::Window
         GLuint envMapTex;
         GLuint envMapCDFTex;
         //
+        void freeAllTex()
+        {
+            glDeleteTextures(1, &BVHTex);
+            glDeleteTextures(1, &vertexIndicesTex);
+            glDeleteTextures(1, &vertexTex);
+            glDeleteTextures(1, &normalTex);
+            glDeleteTextures(1, &uvTex);
+            glDeleteTextures(1, &materialTex);
+            glDeleteTextures(1, &transformsTex);
+            glDeleteTextures(1, &lightsTex);
+            glDeleteTextures(1, &textureMapsArrayTex);
+            glDeleteTextures(1, &envMapTex);
+            glDeleteTextures(1, &envMapCDFTex);
+        }
+
+        void freeAllBuffers()
+        {
+            glDeleteBuffers(1, &BVHBuffer);
+            glDeleteBuffers(1, &vertexIndicesBuffer);
+            glDeleteBuffers(1, &vertexBuffer);
+            glDeleteBuffers(1, &normalBuffer);
+            glDeleteBuffers(1, &uvBuffer);
+            glDeleteBuffers(1, &materialBuffer);
+        }
     };
 
     struct RenderFBOs
@@ -107,6 +131,27 @@ namespace scTracer::Window
         //
         GLuint debugFBO;
         GLuint debugTexture;
+
+        void freeAllTex()
+        {
+            glDeleteTextures(1, &pathTracerTexture);
+            glDeleteTextures(1, &CPUrenderTexture);
+            glDeleteTextures(1, &accumulationTexture);
+            glDeleteTextures(1, &accumulatedTexture);
+            glDeleteTextures(1, &outputTexture[0]);
+            glDeleteTextures(1, &outputTexture[1]);
+            glDeleteTextures(1, &debugTexture);
+        }
+
+        void freeAllFramebuffers()
+        {
+            glDeleteFramebuffers(1, &pathTracerFBO);
+            glDeleteFramebuffers(1, &pathTracerLowResolutionFBO);
+            glDeleteFramebuffers(1, &accumulationFBO);
+            glDeleteFramebuffers(1, &accumulatedFBO);
+            glDeleteFramebuffers(1, &outputFBO);
+            glDeleteFramebuffers(1, &debugFBO);
+        }
     };
 
     class GLFWManager
@@ -122,6 +167,8 @@ namespace scTracer::Window
         RenderGPU(bool useGPU);
         ~RenderGPU() = default;
         void init();
+        void reInitScene(std::string sceneName);
+        void freeAll();
         void render();
         void show();
         void showCPU(CPU::CPURenderer *cpuRenderer);
@@ -131,6 +178,9 @@ namespace scTracer::Window
 
         Core::Scene *mScene{nullptr};
         bool shaderNeedReload{false};
+        std::string mScenesRootPath{Config::sceneFolder};
+        std::vector<std::string> mPbrtSceneListPath;
+        std::vector<std::string> mMayaSceneListPath;
         // Render contexts
         RenderPipeline mRenderPipeline;
         RenderFrameBuffers mRenderFrameBuffers;
@@ -147,9 +197,6 @@ namespace scTracer::Window
         // for window
         glm::ivec2 windowSize{Config::default_width, Config::default_height};
         glm::ivec2 lowResSize{windowSize.x * previewScale, windowSize.y *previewScale};
-        std::string mScenesRootPath{Config::sceneFolder};
-        std::vector<std::string> mPbrtSceneListPath;
-        std::vector<std::string> mMayaSceneListPath;
 
         void __loadSceneLists();
         void __loadScene();
@@ -161,5 +208,4 @@ namespace scTracer::Window
         void __captureFrame(float *buffer);
         friend class Window;
     };
-
 }

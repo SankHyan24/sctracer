@@ -107,77 +107,99 @@ namespace scTracer::Window
         bool shaderNeedReload = false;
         bool instancesDirty = false; // materials, transforms, lights
 
-        // update window
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(250, int(250 * (1 + sqrt(5)) / 2)), ImGuiCond_FirstUseEver);
         ImGui::Begin("Control Panel");
 
-        {
-            float fps = 1.0f / ImGui::GetIO().DeltaTime;
-            ImGui::Text("FPS: %.2f\tspp: %d", fps, mRenderer->numOfSamples);
+        { // FPS info
+            {
+                float fps = 1.0f / ImGui::GetIO().DeltaTime;
+                ImGui::Text("FPS: %.2f\tspp: %d", fps, mRenderer->numOfSamples);
+            }
+
+            {
+                std::ostringstream oss, oss1;
+                oss << std::fixed << std::setprecision(3) << (mRenderer->timeThisFrame - mRenderer->timeBegin);
+                std::string time_string = "cost " + oss.str() + "s";
+                oss1 << std::fixed << std::setprecision(1) << 1000 * (mRenderer->timeThisFrame - mRenderer->timeBegin) / mRenderer->numOfSamples;
+                if (mRenderer->numOfSamples == mRenderer->mScene->settings.maxSamples)
+                    time_string += " (" + oss1.str() + "ms per sample)";
+                ImGui::Text(time_string.c_str());
+                ImGui::Separator();
+            }
         }
 
-        {
-            std::ostringstream oss, oss1;
-            oss << std::fixed << std::setprecision(3) << (mRenderer->timeThisFrame - mRenderer->timeBegin);
-            std::string time_string = "cost " + oss.str() + "s";
-            oss1 << std::fixed << std::setprecision(1) << 1000 * (mRenderer->timeThisFrame - mRenderer->timeBegin) / mRenderer->numOfSamples;
-            if (mRenderer->numOfSamples == mRenderer->mScene->settings.maxSamples)
-                time_string += " (" + oss1.str() + "ms per sample)";
-            ImGui::Text(time_string.c_str());
+        { // Scene Selection
+            std::vector<const char *> sceneNames;
+            for (int i = 0; i < mRenderer->mPbrtSceneListPath.size(); ++i)
+                sceneNames.push_back(mRenderer->mPbrtSceneListPath[i].c_str());
+            for (int i = 0; i < mRenderer->mMayaSceneListPath.size(); ++i)
+                sceneNames.push_back(mRenderer->mMayaSceneListPath[i].c_str());
+
+            if (ImGui::Combo("Scenes", &sceneIdx, sceneNames.data(), sceneNames.size()))
+            {
+                glfwRestoreWindow(mWindow);
+                mRenderer->reInitScene(sceneNames[sceneIdx]);
+                glfwSetWindowSize(mWindow, mRenderer->mScene->settings.image_width, mRenderer->mScene->settings.image_height);
+                shaderNeedReload = true;
+            }
             ImGui::Separator();
         }
 
-        if (ImGui::CollapsingHeader("Render Settings"))
-        {
-            // max samples (input integer )
-            shaderNeedReload |= ImGui::SliderInt("Spp", &mRenderer->mScene->settings.maxSamples, -1, 512);
-            shaderNeedReload |= ImGui::SliderInt("Max bounces", &mRenderer->mScene->settings.maxBounceDepth, 1, 32);
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::CollapsingHeader("Capture"))
-        {
-            ImGui::Text("Save image to file: ");
-            static char filename[128] = "output";
-            ImGui::InputText("Filename", filename, IM_ARRAYSIZE(filename));
-            if (ImGui::Button("Save PNG"))
+        { // Render Settings
+            if (ImGui::CollapsingHeader("Render Settings"))
             {
-                std::string fileName = filename;
-                if (fileName.find(".png") == std::string::npos)
-                    fileName += ".png";
-                mRenderer->saveImage(fileName);
-                std::cerr << Config::LOG_GREEN << "Saved image to [" << fileName << "]" << Config::LOG_RESET << std::endl;
+                shaderNeedReload |= ImGui::SliderInt("Spp", &mRenderer->mScene->settings.maxSamples, -1, 512);
+                shaderNeedReload |= ImGui::SliderInt("Max bounces", &mRenderer->mScene->settings.maxBounceDepth, 1, 32);
             }
-            if (ImGui::Button("Save EXR"))
+            ImGui::Separator();
+        }
+
+        { // Image Capture
+            if (ImGui::CollapsingHeader("Capture"))
             {
-                std::string fileName = filename;
-                if (fileName.find(".exr") == std::string::npos)
-                    fileName += ".exr";
-                mRenderer->saveEXR(fileName);
-                std::cerr << Config::LOG_GREEN << "Saved image to [" << fileName << "]" << Config::LOG_RESET << std::endl;
+                ImGui::Text("Save image to file: ");
+                static char filename[128] = "output";
+                ImGui::InputText("Filename", filename, IM_ARRAYSIZE(filename));
+                if (ImGui::Button("Save PNG"))
+                {
+                    std::string fileName = filename;
+                    if (fileName.find(".png") == std::string::npos)
+                        fileName += ".png";
+                    mRenderer->saveImage(fileName);
+                    std::cerr << Config::LOG_GREEN << "Saved image to [" << fileName << "]" << Config::LOG_RESET << std::endl;
+                }
+                if (ImGui::Button("Save EXR"))
+                {
+                    std::string fileName = filename;
+                    if (fileName.find(".exr") == std::string::npos)
+                        fileName += ".exr";
+                    mRenderer->saveEXR(fileName);
+                    std::cerr << Config::LOG_GREEN << "Saved image to [" << fileName << "]" << Config::LOG_RESET << std::endl;
+                }
+            }
+            ImGui::Separator();
+        }
+
+        { // Camera Info
+            if (ImGui::CollapsingHeader("Camera Info"))
+            {
+                ImGui::Text("camera info: ");
+                ImGui::Text("position: %.2f %.2f %.2f", mRenderer->mScene->camera.mPosition.x, mRenderer->mScene->camera.mPosition.y, mRenderer->mScene->camera.mPosition.z);
+                ImGui::Text("direction: %.2f %.2f %.2f", mRenderer->mScene->camera.mFront.x, mRenderer->mScene->camera.mFront.y, mRenderer->mScene->camera.mFront.z);
+                // up and right
+                ImGui::Text("up: %.2f %.2f %.2f", mRenderer->mScene->camera.mUp.x, mRenderer->mScene->camera.mUp.y, mRenderer->mScene->camera.mUp.z);
+                ImGui::Text("right: %.2f %.2f %.2f", mRenderer->mScene->camera.mRight.x, mRenderer->mScene->camera.mRight.y, mRenderer->mScene->camera.mRight.z);
+                ImGui::Text("fov: %.2f", mRenderer->mScene->camera.mFov);
+                // fov change
+                float fovDegree = mRenderer->mScene->camera.mFov * 180.0f / glm::pi<float>();
+                bool updateFov = false;
+                updateFov |= ImGui::SliderFloat("Fov", &fovDegree, 0.f, 180.0f);
+                mRenderer->mScene->camera.mFov = fovDegree * glm::pi<float>() / 180.0f;
+                shaderNeedReload |= updateFov;
             }
         }
 
-        ImGui::Separator();
-
-        if (ImGui::CollapsingHeader("Camera Info"))
-        {
-            ImGui::Text("camera info: ");
-            ImGui::Text("position: %.2f %.2f %.2f", mRenderer->mScene->camera.mPosition.x, mRenderer->mScene->camera.mPosition.y, mRenderer->mScene->camera.mPosition.z);
-            ImGui::Text("direction: %.2f %.2f %.2f", mRenderer->mScene->camera.mFront.x, mRenderer->mScene->camera.mFront.y, mRenderer->mScene->camera.mFront.z);
-            // up and right
-            ImGui::Text("up: %.2f %.2f %.2f", mRenderer->mScene->camera.mUp.x, mRenderer->mScene->camera.mUp.y, mRenderer->mScene->camera.mUp.z);
-            ImGui::Text("right: %.2f %.2f %.2f", mRenderer->mScene->camera.mRight.x, mRenderer->mScene->camera.mRight.y, mRenderer->mScene->camera.mRight.z);
-            ImGui::Text("fov: %.2f", mRenderer->mScene->camera.mFov);
-            // fov change
-            float fovDegree = mRenderer->mScene->camera.mFov * 180.0f / glm::pi<float>();
-            bool updateFov = false;
-            updateFov |= ImGui::SliderFloat("Fov", &fovDegree, 0.f, 180.0f);
-            mRenderer->mScene->camera.mFov = fovDegree * glm::pi<float>() / 180.0f;
-            shaderNeedReload |= updateFov;
-        }
         ImGui::End();
 
         mRenderer->shaderNeedReload |= shaderNeedReload;                         // changes about shaders

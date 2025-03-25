@@ -169,7 +169,7 @@ namespace scTracer::Core
                 mat.baseColor = glm::vec3(1.0);
                 mat.baseColorTexId = baseColorTexId;
             }
-            printDebugInfo();
+            // printDebugInfo();
             return mat;
         }
         Material getMaterialFromDisney()
