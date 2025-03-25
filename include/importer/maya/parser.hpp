@@ -23,6 +23,7 @@ namespace scTracer::Importer::Maya
         std::vector<Core::Mesh *> meshes;            // mesh数据
         std::vector<Core::MaterialRaw> materialsRaw; // 材质数据
         std::vector<Core::Instance> instances;       // 实例数据
+        std::vector<Core::Texture *> textures;
         mayaObjFile(std::string objPath) : objPath(objPath)
         {
             __parse();
@@ -69,8 +70,13 @@ namespace scTracer::Importer::Maya
                 mat.baseColorTexId = -1;
                 if (materials[i].diffuse_texname != "")
                 {
-                    mat.baseColorTexId = i;
+                    mat.baseColorTexId = textures.size();
                     mat.baseColorTexName = materials[i].diffuse_texname;
+                    auto tex = new Core::Texture();
+                    std::string texturePath{reader_config.mtl_search_path + "/" + mat.baseColorTexName};
+                    std::cout << "location is " << texturePath << std::endl;
+                    assert(tex->LoadTexture(texturePath) && ("load texture [" + texturePath + "] error!").c_str());
+                    textures.push_back(tex);
                 }
                 materialsRaw.push_back(mat);
             }
@@ -345,6 +351,7 @@ namespace scTracer::Importer::Maya
             mayaObjFile objFile{objPath};
             auto scene = new Core::Scene(xmlFile.camera, xmlFile.settings);
             scene->materials = objFile.materialsRaw;
+            scene->textures = objFile.textures;
             for (auto &mesh : objFile.meshes)
                 scene->meshes.push_back(mesh);
             for (auto &instance : objFile.instances)

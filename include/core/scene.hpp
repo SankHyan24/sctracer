@@ -52,6 +52,8 @@ namespace scTracer::Core
         // assets
         std::vector<MaterialRaw> materials;
         std::vector<Material> materialDatas;
+        std::vector<Texture *> textures;
+        std::vector<unsigned char> textureMapsData;
         std::vector<Mesh *> meshes; // pointers to mesh because mesh is a heavy object
         std::vector<Light> lights;
 

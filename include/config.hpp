@@ -5,7 +5,8 @@ namespace scTracer::Config
 {
     extern const int default_width;
     extern const int default_height;
-
+    extern const int default_texture_width;
+    extern const int default_texutre_height;
     extern const std::string shaderFolder;
     extern const std::string sceneFolder;
     extern const std::string outputFolder;

@@ -3,6 +3,8 @@ namespace scTracer::Config
 {
     const int default_width = 500;
     const int default_height = 500;
+    const int default_texture_width = 2048;
+    const int default_texutre_height = 2048;
     const std::string shaderFolder = "shaders/";
     const std::string sceneFolder = "assets/";
     const std::string outputFolder = "./";

@@ -433,6 +433,7 @@ namespace scTracer::Window
         glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
         glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
         glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
+        glUniform1i(glGetUniformLocation(thisProgram, "envMapTex"), 10);
         mRenderPipeline.PathTracer->StopUsing();
 
         mRenderPipeline.PathTracerLowResolution->Use();
@@ -450,6 +451,8 @@ namespace scTracer::Window
         glUniform1i(glGetUniformLocation(thisProgram, "transformsTex"), 7);
         glUniform1i(glGetUniformLocation(thisProgram, "lightsTex"), 8);
         glUniform1i(glGetUniformLocation(thisProgram, "textureMapsArrayTex"), 9);
+        glUniform1i(glGetUniformLocation(thisProgram, "envMapTex"), 10);
+
         mRenderPipeline.PathTracerLowResolution->StopUsing();
         Utils::glUtils::checkError("RenderGPU::__loadShaders");
     }
@@ -519,18 +522,26 @@ namespace scTracer::Window
             glBindTexture(GL_TEXTURE_2D, 0);
         }
 
-        // if (!scene->textures.empty())
-        // {
-        glGenTextures(1, &mRenderFrameBuffers.textureMapsArrayTex);
-        glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
-        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 1, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-        // }
+        if (!mScene->textures.empty())
+        {
+            glGenTextures(1, &mRenderFrameBuffers.textureMapsArrayTex);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
+            glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, Config::default_texture_width, Config::default_texutre_height, mScene->textures.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, &mScene->textureMapsData[0]);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+        }
 
         // Create texture for scene textures
         // envmap
+
+        glGenTextures(1, &mRenderFrameBuffers.envMapTex);
+        glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapTex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 1, 1, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_BUFFER, mRenderFrameBuffers.BVHTex);
         glActiveTexture(GL_TEXTURE2);
@@ -549,6 +560,8 @@ namespace scTracer::Window
         glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.lightsTex);
         glActiveTexture(GL_TEXTURE9);
         glBindTexture(GL_TEXTURE_2D_ARRAY, mRenderFrameBuffers.textureMapsArrayTex);
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, mRenderFrameBuffers.envMapTex);
 
         std::cerr << " ... " << Config::LOG_GREEN << "Done!" << Config::LOG_RESET << std::endl;
         Utils::glUtils::checkError("RenderGPU::__initGPUDateBuffers");

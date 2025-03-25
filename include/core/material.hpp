@@ -86,14 +86,8 @@ namespace scTracer::Core
             std::cout << "MaterialRaw Name: " << Config::LOG_GREEN << name << Config::LOG_RESET
                       << " using " << Config::LOG_GREEN << materialSystemStrings[static_cast<int>(mSystem)] << Config::LOG_RESET
                       << " system" << std::endl;
-            if (mSystem != MatSystem::PHONG)
-            {
-                std::cout << "Basecolor: " << basecolor.x << " " << basecolor.y << " " << basecolor.z << std::endl;
-                std::cout << "MaterialRaw Type: " << materialTypeStrings[static_cast<int>(mType)] << std::endl;
-                std::cout << "Roughness: " << roughness << std::endl;
-                std::cout << "Metallic: " << metallic << std::endl;
-            }
-            else
+
+            if (mSystem == MatSystem::PHONG)
             {
                 std::cout << "Kd: " << Kd.x << " " << Kd.y << " " << Kd.z << std::endl;
                 std::cout << "Ks: " << Ks.x << " " << Ks.y << " " << Ks.z << std::endl;
@@ -107,6 +101,13 @@ namespace scTracer::Core
                     std::cout << "Basecolor Texture Name: " << baseColorTexName << std::endl;
                 }
             }
+            else
+            {
+                std::cout << "MaterialRaw Type: " << materialTypeStrings[static_cast<int>(mType)] << std::endl;
+            }
+            std::cout << "Basecolor: " << basecolor.x << " " << basecolor.y << " " << basecolor.z << std::endl;
+            std::cout << "Roughness: " << roughness << std::endl;
+            std::cout << "Metallic: " << metallic << std::endl;
         }
         Material getMaterialFromPbrt()
         {
@@ -124,6 +125,11 @@ namespace scTracer::Core
             mat.baseColor = basecolor;
             mat.roughness = roughness;
             mat.metallic = metallic;
+            if (baseColorTexId != -1)
+            {
+                mat.baseColor = glm::vec3(1.0);
+                mat.baseColorTexId = baseColorTexId;
+            }
             return mat;
         }
 
@@ -133,25 +139,37 @@ namespace scTracer::Core
             /* Specular: average of Ks components. */
             float specular = (Ks.x + Ks.y + Ks.z) / 3.0f;
             specular = glm::clamp(specular, 0.0f, 1.0f);
-            /* Roughness: map 0..1000 range to 1..0 and apply non-linearity. */
+            /* Roughness: map 0..100 range to 1..0 and apply non-linearity. */
             float spec_exponent = Ns;
             if (Ns < 0)
                 roughness = 1.0f;
             else
             {
-                float clamped_ns = glm::clamp(Ns, 0.f, 1000.f);
-                roughness = 1.0f - sqrt(clamped_ns / 1000.0f);
+                float clamped_ns = glm::clamp(Ns, 0.f, 100.f);
+                roughness = 1.0f - sqrt(clamped_ns / 100.0f);
+                specular = glm::clamp(Ns / 10.f, 0.f, 1.f);
             }
             /* Metallic: average of `Ka` components. */
             metallic = (Ka.x + Ka.y + Ka.z) / 3.0f;
+            metallic = 1 - roughness;
+
             Material mat;
             mat.baseColor = Kd;
+            if (roughness == 0.f)
+                mat.baseColor = glm::vec3(1.0f);
             mat.roughness = roughness;
             mat.ior = Ni;
             mat.metallic = metallic;
             mat.emission = glm::vec3(0.0f);
             mat.opacity = Tr.x;
-            mat.specularTint = specular * 0.08f;
+            mat.specularTint = specular;
+
+            if (baseColorTexId != -1)
+            {
+                mat.baseColor = glm::vec3(1.0);
+                mat.baseColorTexId = baseColorTexId;
+            }
+            printDebugInfo();
             return mat;
         }
         Material getMaterialFromDisney()

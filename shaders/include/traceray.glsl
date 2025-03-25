@@ -69,7 +69,8 @@ void GetMaterial(inout State state, in Ray r)
     if (texIDs.x >= 0)
     {
         vec4 col = texture(textureMapsArrayTex, vec3(state.texCoord, texIDs.x));
-        mat.baseColor.rgb *= pow(col.rgb, vec3(2.2));
+        mat.baseColor.rgb = col.rgb;
+        // mat.baseColor.rgb *= pow(col.rgb, vec3(2.2));
         mat.opacity *= col.a;
     }
 
@@ -232,6 +233,20 @@ vec4 traceRay(Ray r){
         r.origin = state.fhp + r.direction * EPS;
        
     }
+    //  int index = state.matID * 8;
+    // Material mat;
+    // vec4 param1 = texelFetch(materialsTex, ivec2(index + 0, 0), 0);
+    // vec4 param7 = texelFetch(materialsTex, ivec2(index + 6, 0), 0);
+    // mat.baseColor          = param1.rgb;
+    // ivec4 texIDs           = ivec4(param7);
+    // if (texIDs.x >= 0)
+    // {
+    //     vec4 col = texture(textureMapsArrayTex, vec3(state.texCoord, texIDs.x));
+    //     mat.baseColor.rgb = pow(col.rgb, vec3(2.2));
+    //     mat.opacity *= col.a;
+    //     // mat.baseColor.rgb = vec3(1,0,0);
+    // }
+    // radiance = mat.baseColor.rgb;
     return vec4(radiance, alpha);
     // return vec4(state.normal, alpha);
     // return vec4(throughput, alpha);

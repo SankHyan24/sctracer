@@ -1,5 +1,6 @@
 #include <core/scene.hpp>
-
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include <stb_image_resize2.h>
 namespace scTracer::Core
 {
     void SceneSettings::printDebugInfo()
@@ -85,7 +86,24 @@ namespace scTracer::Core
 
         // prepare texture data
         std::cerr << "Preparing textures data ...";
-        // not implemented yet
+        int defaultWidth = Config::default_texture_width;
+        int defaultHeight = Config::default_texutre_height;
+        int bytesOfOneTexture = defaultWidth * defaultHeight * 4;
+        textureMapsData.resize(bytesOfOneTexture * textures.size());
+        for (int i = 0; i < textures.size(); i++)
+        {
+            int texWidth = textures[i]->mWidth;
+            int texHeight = textures[i]->mHeight;
+            if (texWidth != defaultWidth || texHeight != defaultHeight)
+            {
+                unsigned char *resizedTex = new unsigned char[bytesOfOneTexture];
+                stbir_resize_uint8_linear(&textures[i]->data[0], texWidth, texHeight, 0, resizedTex, defaultWidth, defaultHeight, 0, STBIR_RGBA);
+                std::copy(resizedTex, resizedTex + bytesOfOneTexture, &textureMapsData[i * bytesOfOneTexture]);
+                delete[] resizedTex;
+            }
+            else
+                std::copy(textures[i]->data.begin(), textures[i]->data.end(), &textureMapsData[i * bytesOfOneTexture]);
+        }
         std::cerr << "Done!" << std::endl;
 
         initialized = true;
