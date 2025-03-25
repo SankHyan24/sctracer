@@ -186,7 +186,7 @@ vec4 traceRay(Ray r){
     vec3 debugger = vec3(0.0);
 
     for (state.depth = 0;; state.depth++){
-        bool hit = ClosestHit(r, state, lightSample, debugger);
+        bool hit = ClosestHit(r , state, lightSample, debugger);
         if(!hit)
         {
             // BACKGROUND here
@@ -233,4 +233,6 @@ vec4 traceRay(Ray r){
        
     }
     return vec4(radiance, alpha);
+    // return vec4(state.normal, alpha);
+    // return vec4(throughput, alpha);
 }

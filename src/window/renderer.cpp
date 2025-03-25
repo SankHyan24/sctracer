@@ -405,7 +405,7 @@ namespace scTracer::Window
     void RenderGPU::__loadScene()
     {
         assert(mMayaSceneListPath.size() > 0);
-        __loadScene(mMayaSceneListPath[1]);
+        __loadScene(mMayaSceneListPath[0]);
         windowSize.x = mScene->settings.image_width;
         windowSize.y = mScene->settings.image_height;
     }

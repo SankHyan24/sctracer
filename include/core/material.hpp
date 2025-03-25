@@ -152,7 +152,6 @@ namespace scTracer::Core
             mat.emission = glm::vec3(0.0f);
             mat.opacity = Tr.x;
             mat.specularTint = specular * 0.08f;
-            printDebugInfo();
             return mat;
         }
         Material getMaterialFromDisney()

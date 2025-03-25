@@ -14,12 +14,6 @@
 namespace scTracer::Importer::Maya
 {
     // this parser only works for the ZJU CG course's scene files
-    class mayaInstance
-    {
-    };
-    class mayaLight
-    {
-    };
     class mayaObjFile
     {
     public:
@@ -55,19 +49,11 @@ namespace scTracer::Importer::Maya
                 std::cerr << "Error: " << err << std::endl;
                 exit(0);
             }
-            std::cout << "Obj file: " << objPath << std::endl;
-            std::cout << "Number of shapes: " << shapes.size() << std::endl;
-
             const std::vector<float> &vertices = attrib.vertices;
             const std::vector<float> &normals = attrib.normals;
             const std::vector<float> &texcoords = attrib.texcoords;
-
             const std::vector<tinyobj::shape_t> &shapes = this->shapes;
             const std::vector<tinyobj::material_t> &materials = this->materials;
-            std::cout << "Number of materials: " << materials.size() << std::endl;
-            std::cout << "Number of vertices: " << vertices.size() / 3 << std::endl;
-            std::cout << "Number of normals: " << normals.size() / 3 << std::endl;
-            std::cout << "Number of texcoords: " << texcoords.size() / 2 << std::endl;
 
             // add materials
             for (int i = 0; i < materials.size(); i++)
@@ -96,7 +82,6 @@ namespace scTracer::Importer::Maya
                 auto &mesh = shape.mesh;
                 Core::Mesh *curMesh = new Core::Mesh();
                 curMesh->meshName = shape.name;
-                std::cout << "material id " << mesh.material_ids[0] << std::endl;
                 for (size_t j = 0; j < mesh.num_face_vertices.size(); j++)
                 {
                     int fnum = mesh.num_face_vertices[j];
@@ -355,10 +340,8 @@ namespace scTracer::Importer::Maya
             // remove .mb
             std::string pathWithout_MB = path.substr(0, path.find_last_of("."));
             xmlPath = pathWithout_MB + ".xml";
-            // mtlPath = pathWithout_MB + ".mtl"; // deprecated
             objPath = pathWithout_MB + ".obj";
             mayaXmlFile xmlFile{xmlPath};
-            // mayaMtlFile mtlFile{mtlPath};
             mayaObjFile objFile{objPath};
             auto scene = new Core::Scene(xmlFile.camera, xmlFile.settings);
             scene->materials = objFile.materialsRaw;
@@ -379,13 +362,19 @@ namespace scTracer::Importer::Maya
                 for (int i = 0; i < scene->meshes.size(); i++)
                     if (scene->instances[i].mMaterialIndex == materialId)
                     {
-                        meshID = i;
+                        meshID = scene->instances[i].mMeshIndex;
+                        scene->instances[i].mActived = false; // set the instance to inactive
                         break;
                     }
                 assert(meshID != -1 && "mesh id error");
                 light.fromMesh2RectLight(scene->meshes[meshID], xmlFile.lightsEmissions[i]);
                 lights.push_back(light);
             }
+
+            // Core::Light light_added;
+            // light_added.fromMesh2RectLight(scene->meshes[4], glm::vec3(1.0f, 1.0f, 1.0f));
+            // scene->instances[4].mActived = false;
+            // lights.push_back(light_added);
             for (auto &light : lights)
                 scene->lights.push_back(light);
             std::cout << "Done!" << std::endl;

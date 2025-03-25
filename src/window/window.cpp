@@ -103,6 +103,10 @@ namespace scTracer::Window
 
     void Window::__updateImguiWindow()
     {
+        bool isDirty = false;
+        bool shaderNeedReload = false;
+        bool instancesDirty = false; // materials, transforms, lights
+
         // update window
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(250, int(250 * (1 + sqrt(5)) / 2)), ImGuiCond_FirstUseEver);
@@ -126,16 +130,9 @@ namespace scTracer::Window
 
         if (ImGui::CollapsingHeader("Render Settings"))
         {
-            bool isDirty = false;
-            bool shaderNeedReload = false;
-            bool instancesDirty = false; // materials, transforms, lights
             // max samples (input integer )
             shaderNeedReload |= ImGui::SliderInt("Spp", &mRenderer->mScene->settings.maxSamples, -1, 512);
             shaderNeedReload |= ImGui::SliderInt("Max bounces", &mRenderer->mScene->settings.maxBounceDepth, 1, 32);
-
-            mRenderer->shaderNeedReload |= shaderNeedReload;                         // changes about shaders
-            mRenderer->mScene->instancesDirty |= instancesDirty | shaderNeedReload;  // materials, transforms, lights
-            mRenderer->mScene->dirty |= isDirty | instancesDirty | shaderNeedReload; // anything changed so we need to flush the canvas
         }
 
         ImGui::Separator();
@@ -165,16 +162,27 @@ namespace scTracer::Window
 
         ImGui::Separator();
 
-        // if (ImGui::CollapsingHeader("Camera Info"))
-        // {
-        //     ImGui::Text("camera info: ");
-        //     ImGui::Text("position: %.2f %.2f %.2f", mRenderer->mScene->camera.mPosition.x, mRenderer->mScene->camera.mPosition.y, mRenderer->mScene->camera.mPosition.z);
-        //     ImGui::Text("direction: %.2f %.2f %.2f", mRenderer->mScene->camera.mFront.x, mRenderer->mScene->camera.mFront.y, mRenderer->mScene->camera.mFront.z);
-        //     // up and right
-        //     ImGui::Text("up: %.2f %.2f %.2f", mRenderer->mScene->camera.mUp.x, mRenderer->mScene->camera.mUp.y, mRenderer->mScene->camera.mUp.z);
-        //     ImGui::Text("right: %.2f %.2f %.2f", mRenderer->mScene->camera.mRight.x, mRenderer->mScene->camera.mRight.y, mRenderer->mScene->camera.mRight.z);
-        // }
+        if (ImGui::CollapsingHeader("Camera Info"))
+        {
+            ImGui::Text("camera info: ");
+            ImGui::Text("position: %.2f %.2f %.2f", mRenderer->mScene->camera.mPosition.x, mRenderer->mScene->camera.mPosition.y, mRenderer->mScene->camera.mPosition.z);
+            ImGui::Text("direction: %.2f %.2f %.2f", mRenderer->mScene->camera.mFront.x, mRenderer->mScene->camera.mFront.y, mRenderer->mScene->camera.mFront.z);
+            // up and right
+            ImGui::Text("up: %.2f %.2f %.2f", mRenderer->mScene->camera.mUp.x, mRenderer->mScene->camera.mUp.y, mRenderer->mScene->camera.mUp.z);
+            ImGui::Text("right: %.2f %.2f %.2f", mRenderer->mScene->camera.mRight.x, mRenderer->mScene->camera.mRight.y, mRenderer->mScene->camera.mRight.z);
+            ImGui::Text("fov: %.2f", mRenderer->mScene->camera.mFov);
+            // fov change
+            float fovDegree = mRenderer->mScene->camera.mFov * 180.0f / glm::pi<float>();
+            bool updateFov = false;
+            updateFov |= ImGui::SliderFloat("Fov", &fovDegree, 0.f, 180.0f);
+            mRenderer->mScene->camera.mFov = fovDegree * glm::pi<float>() / 180.0f;
+            shaderNeedReload |= updateFov;
+        }
         ImGui::End();
+
+        mRenderer->shaderNeedReload |= shaderNeedReload;                         // changes about shaders
+        mRenderer->mScene->instancesDirty |= instancesDirty | shaderNeedReload;  // materials, transforms, lights
+        mRenderer->mScene->dirty |= isDirty | instancesDirty | shaderNeedReload; // anything changed so we need to flush the canvas
     }
 
     void Window::__keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods)

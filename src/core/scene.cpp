@@ -142,6 +142,8 @@ namespace scTracer::Core
         std::vector<BVH::BoundingBox> bounds(instances.size());
         for (int i = 0; i < instances.size(); i++)
         {
+            if (!instances[i].mActived)
+                continue;
             BVH::BoundingBox bbox = meshes[instances[i].mMeshIndex]->bvh->getWorldBounds();
             glm::mat4 transform = instances[i].getTransform();
 
